@@ -40,19 +40,58 @@ dec: vardec
     | fundec
     ;
 
-vardec: KW_INT TK_IDENTIFIER '=' LIT_INT
+lit: LIT_INT
+    | LIT_CHAR
+    | LIT_REAL
+    | LIT_STRING
     ;
 
-fundec: KW_INT TK_IDENTIFIER '(' ')' cmdl
+vardec: KW_INT TK_IDENTIFIER '=' lit ';'
+    | KW_REAL TK_IDENTIFIER '=' lit ';'
+    | KW_BYTE TK_IDENTIFIER '=' lit ';'
+    | vecdec
     ;
 
-cmdl: cmd cmdl
+vecdec: KW_INT TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
+    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
+    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
+    | KW_INT TK_IDENTIFIER '[' LIT_INT ']' ';'
+    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' ';'
+    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' ';'
+    ;
+
+listvar: lit ',' listvar
+    | lit
+    ;
+
+fundec: KW_INT TK_IDENTIFIER '(' argl ')' '{' cmdl '}'
+    | KW_REAL TK_IDENTIFIER '(' argl ')' '{' cmdl '}'
+    | KW_BYTE TK_IDENTIFIER '(' argl ')' '{' cmdl '}'
+    ;
+
+argl: arg ',' argl
+    | arg
+    ;
+
+arg: KW_INT TK_IDENTIFIER
+    | KW_REAL TK_IDENTIFIER
+    | KW_BYTE TK_IDENTIFIER
     | 
     ;
 
-cmd: TK_IDENTIFIER '=' expr
+cmdl: '{' cmd '}' cmdl
+    | '{' cmd '}'
+    ;
+
+cmd: TK_IDENTIFIER '=' expr ';'
     | KW_IF expr cmd
-    |
+    | KW_IF expr cmd KW_ELSE cmd
+    | KW_WHILE expr cmd
+    | KW_DO cmd KW_WHILE expr ';'
+    | KW_READ expr ';'
+    | KW_PRINT expr ';'
+    | KW_RETURN expr ';'
+    | 
     ;
 
 ldef: def ';' ldef
