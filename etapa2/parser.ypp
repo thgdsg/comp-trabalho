@@ -100,7 +100,27 @@ ldef: def ';' ldef
 
 expr: TK_IDENTIFIER
     | A '+' B
-    |
+    | A '-' B
+    | A '*' B
+    | A '/' B
+    | A '%' B
+    | A OPERATOR_EQ B
+    | A OPERATOR_LE B
+    | A OPERATOR_GE B
+    | A OPERATOR_DIF B
+    ;
+
+A: TK_IDENTIFIER
+    | LIT_INT
+    | LIT_CHAR
+    | LIT_REAL
+    | LIT_STRING
+    ;
+B: TK_IDENTIFIER
+    | LIT_INT
+    | LIT_CHAR
+    | LIT_REAL
+    | LIT_STRING
     ;
 %%
 
