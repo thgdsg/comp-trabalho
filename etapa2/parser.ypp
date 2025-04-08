@@ -1,0 +1,71 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+using namespace std;
+int yylex();
+void yyerror(string msg);
+
+%}
+%token KW_BYTE
+%token KW_INT
+%token KW_REAL
+%token KW_IF
+%token KW_ELSE
+%token KW_DO
+%token KW_WHILE
+%token KW_READ
+%token KW_PRINT
+%token KW_RETURN
+%token OPERATOR_EQ
+%token OPERATOR_LE
+%token OPERATOR_GE
+%token OPERATOR_DIF
+%token TK_IDENTIFIER
+%token LIT_INT
+%token LIT_CHAR
+%token LIT_REAL
+%token LIT_STRING
+%token TOKEN_ERROR
+
+%%
+
+program: ldef
+    ;
+
+ldecl: dec ';' ldecl
+    ;
+
+dec: vardec
+    | fundec
+    ;
+
+vardec: KW_INT TK_IDENTIFIER '=' LIT_INT
+    ;
+
+fundec: KW_INT TK_IDENTIFIER '(' ')' cmdl
+    ;
+
+cmdl: cmd cmdl
+    | 
+    ;
+
+cmd: TK_IDENTIFIER '=' expr
+    | KW_IF expr cmd
+    |
+    ;
+
+ldef: def ';' ldef
+    |
+    ;
+
+expr: TK_IDENTIFIER
+    | A '+' B
+    |
+    ;
+%%
+
+void yyerror(string msg){
+    fprintf(stderr,"Erro de sintaxe\n");
+    exit(3);
+}
