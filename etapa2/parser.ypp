@@ -7,6 +7,7 @@ int yylex();
 void yyerror(string msg);
 
 %}
+%locations
 %token KW_BYTE
 %token KW_INT
 %token KW_REAL
@@ -26,19 +27,22 @@ void yyerror(string msg);
 %token LIT_CHAR
 %token LIT_REAL
 %token LIT_STRING
-%token TOKEN_ERROR
 
 %%
 
 program: ldef
     ;
 
-ldecl: dec ';' ldecl
+ldef: def ';' ldef
+    | def
+    |
     ;
 
-dec: vardec
+def: cmdblock
+    | cmd
+    | vardec
     | fundec
-    ;
+    | vecdec
 
 lit: LIT_INT
     | LIT_CHAR
@@ -64,9 +68,9 @@ listvar: lit ',' listvar
     | lit
     ;
 
-fundec: KW_INT TK_IDENTIFIER '(' argl ')' '{' cmdl '}'
-    | KW_REAL TK_IDENTIFIER '(' argl ')' '{' cmdl '}'
-    | KW_BYTE TK_IDENTIFIER '(' argl ')' '{' cmdl '}'
+fundec: KW_INT TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
+    | KW_REAL TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
+    | KW_BYTE TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
     ;
 
 argl: arg ',' argl
@@ -79,35 +83,54 @@ arg: KW_INT TK_IDENTIFIER
     | 
     ;
 
-cmdl: '{' cmd '}' cmdl
+cmdblock: '{' cmd '}' cmdblock
     | '{' cmd '}'
     ;
 
 cmd: TK_IDENTIFIER '=' expr ';'
-    | KW_IF expr cmd
-    | KW_IF expr cmd KW_ELSE cmd
-    | KW_WHILE expr cmd
+    | KW_IF '(' expr ')' cmd
+    | KW_IF '(' expr ')' cmd KW_ELSE cmd
+    | KW_WHILE expr KW_DO cmd
     | KW_DO cmd KW_WHILE expr ';'
     | KW_READ expr ';'
     | KW_PRINT expr ';'
     | KW_RETURN expr ';'
-    | 
+    | ';'
     ;
 
-ldef: def ';' ldef
-    |
-    ;
 
 expr: TK_IDENTIFIER
-    | A '+' B
-    | A '-' B
-    | A '*' B
-    | A '/' B
-    | A '%' B
-    | A OPERATOR_EQ B
-    | A OPERATOR_LE B
-    | A OPERATOR_GE B
-    | A OPERATOR_DIF B
+    | LIT_INT
+    | LIT_CHAR
+    | LIT_REAL
+    | LIT_STRING
+    | A operator B
+    | KW_INT TK_IDENTIFIER '(' exprlist ')'
+    | KW_REAL TK_IDENTIFIER '(' exprlist ')'
+    | KW_BYTE TK_IDENTIFIER '(' exprlist ')'
+    | KW_INT TK_IDENTIFIER '(' ')'
+    | KW_REAL TK_IDENTIFIER '(' ')'
+    | KW_BYTE TK_IDENTIFIER '(' ')'
+    ;
+
+exprlist: expr ',' exprlist
+    | expr
+    ;
+
+operator: '+'
+    | '-'
+    | '*'
+    | '/'
+    | '>'
+    | '<'
+    | '='
+    | '&'
+    | '|'
+    | '~'
+    | OPERATOR_EQ
+    | OPERATOR_LE
+    | OPERATOR_GE
+    | OPERATOR_DIF
     ;
 
 A: TK_IDENTIFIER
@@ -116,15 +139,18 @@ A: TK_IDENTIFIER
     | LIT_REAL
     | LIT_STRING
     ;
+
 B: TK_IDENTIFIER
     | LIT_INT
     | LIT_CHAR
     | LIT_REAL
     | LIT_STRING
     ;
+
 %%
 
 void yyerror(string msg){
-    fprintf(stderr,"Erro de sintaxe\n");
+    extern YYLTYPE yylloc;
+    fprintf(stderr, "Erro de sintaxe na linha %d: %s\n", yylloc.first_line, msg.c_str());
     exit(3);
 }

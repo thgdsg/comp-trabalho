@@ -12,8 +12,11 @@ etapa2: lex.yy.o main.o symbols.o parser.tab.o
 lex.yy.cpp: scanner.l
 	flex -o lex.yy.cpp scanner.l
 
+parser.tab.hpp: parser.tab.cpp
+	bison -d -o parser.tab.cpp parser.ypp
+
 parser.tab.cpp: parser.ypp
 	bison parser.ypp -d
 
 clean:
-	rm etapa2 lex.yy.cpp parser.tab.hpp *.o
+	rm etapa2 lex.yy.cpp parser.tab.cpp parser.tab.hpp *.o

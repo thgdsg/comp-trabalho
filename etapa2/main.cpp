@@ -24,6 +24,7 @@ int main(int argc, char** argv){
         return 1;
     }
     yyparse();
+    fprintf(stderr,"Parsing finished\n");
     fprintf(stderr,"File has %d lines\n", getLineNumber());
     symbolPrintTable();
 }
