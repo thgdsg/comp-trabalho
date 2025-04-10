@@ -12,6 +12,7 @@ void yyerror(string msg);
 %token KW_INT
 %token KW_REAL
 %token KW_IF
+%token KW_THEN
 %token KW_ELSE
 %token KW_DO
 %token KW_WHILE
@@ -35,90 +36,104 @@ void yyerror(string msg);
 program: ldef
     ;
 
+// o programa é uma sequência de definições
+
 ldef: def ldef
     | def
     |
     ;
 
+// definições podem ser blocos de comando, declarações de variáveis, funções ou vetores
 def: cmdblock
-    | cmd
     | vardec
     | fundec
     | vecdec
 
+// todos os literais possiveis
 lit: LIT_INT
     | LIT_CHAR
     | LIT_REAL
     | LIT_STRING
     ;
 
-vardec: KW_INT TK_IDENTIFIER '=' lit ';'
-    | KW_REAL TK_IDENTIFIER '=' lit ';'
-    | KW_BYTE TK_IDENTIFIER '=' lit ';'
+// todas as keywords de valores possiveis
+kw_value: KW_INT
+    | KW_REAL
+    | KW_BYTE
+    ;
+
+// declaração de variáveis
+vardec: kw_value TK_IDENTIFIER '=' lit ';'
     | vecdec
     ;
 
-vecdec: KW_INT TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
-    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
-    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
-    | KW_INT TK_IDENTIFIER '[' LIT_INT ']' ';'
-    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' ';'
-    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' ';'
+// declaração de vetores
+vecdec: kw_value TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
+    | kw_value TK_IDENTIFIER '[' LIT_INT ']' ';'
     ;
 
+// lista de variaveis (pra declaração de vetores)
 listvar: lit ',' listvar
     | lit
     ;
 
-fundec: KW_INT TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
-    | KW_REAL TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
-    | KW_BYTE TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
+// declaração de funções
+fundec: kw_value TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
     ;
 
+// lista de argumentos (para declaração de funções (não pra chamadas))
 argl: arg ',' argl
     | arg
     ;
 
-arg: KW_INT TK_IDENTIFIER
-    | KW_REAL TK_IDENTIFIER
-    | KW_BYTE TK_IDENTIFIER
+arg: kw_value TK_IDENTIFIER
     | 
     ;
 
-cmdblock: '{' cmd '}' cmdblock
-    | '{' cmd '}'
+// bloco de comandos
+cmdblock: '{' cmdblock '}'
+    | cmd cmdblock
+    | cmd
+    |
     ;
 
+// comandos da linguagem
 cmd: TK_IDENTIFIER '=' expr ';'
-    | KW_IF '(' expr ')' cmd
-    | KW_IF '(' expr ')' cmd KW_ELSE cmd
-    | KW_WHILE expr KW_DO cmd
-    | KW_DO cmd KW_WHILE expr ';'
-    | KW_READ expr ';'
-    | KW_PRINT expr ';'
+    | vec '=' expr ';'
+    | TK_IDENTIFIER '=' funcall ';'
+    | vec '=' funcall ';'
+    | KW_IF '(' expr ')' cmdblock
+    | KW_IF '(' expr ')' cmdblock KW_ELSE cmdblock
+    | KW_IF '(' expr ')' KW_THEN cmdblock
+    | KW_IF '(' expr ')' KW_THEN cmdblock KW_ELSE cmdblock
+    | KW_WHILE expr KW_DO cmdblock
+    | KW_DO cmdblock KW_WHILE '(' expr ')' ';'
+    | KW_READ TK_IDENTIFIER ';'
+    | KW_PRINT printl ';'
     | KW_RETURN expr ';'
     | ';'
     ;
 
-
-expr: TK_IDENTIFIER
-    | LIT_INT
-    | LIT_CHAR
-    | LIT_REAL
-    | LIT_STRING
-    | A operator B
-    | KW_INT TK_IDENTIFIER '(' exprlist ')'
-    | KW_REAL TK_IDENTIFIER '(' exprlist ')'
-    | KW_BYTE TK_IDENTIFIER '(' exprlist ')'
-    | KW_INT TK_IDENTIFIER '(' ')'
-    | KW_REAL TK_IDENTIFIER '(' ')'
-    | KW_BYTE TK_IDENTIFIER '(' ')'
+// lista de argumentos pro comando print
+printl: expr printl
+    | expr
     ;
 
+// expressões da linguagem
+expr: TK_IDENTIFIER
+    | lit
+    | vec
+    | A operator B
+    | funcall
+    | kw_value TK_IDENTIFIER '(' ')'
+    ;
+
+// lista de expressões (para chamada de função)
 exprlist: expr ',' exprlist
     | expr
     ;
 
+// operadores aceitos pela linguagem
 operator: '+'
     | '-'
     | '*'
@@ -135,11 +150,22 @@ operator: '+'
     | OPERATOR_DIF
     ;
 
+// vetores (generalizando)
+vec: TK_IDENTIFIER '[' expr ']'
+    | TK_IDENTIFIER '[' ']'
+    ;
+
+// chamada de função
+funcall: TK_IDENTIFIER '(' exprlist ')'
+    ;
+
+//operadores A e B pra expressões
 A: TK_IDENTIFIER
     | LIT_INT
     | LIT_CHAR
     | LIT_REAL
     | LIT_STRING
+    | vec
     ;
 
 B: TK_IDENTIFIER
@@ -147,6 +173,7 @@ B: TK_IDENTIFIER
     | LIT_CHAR
     | LIT_REAL
     | LIT_STRING
+    | vec
     ;
 
 %%
