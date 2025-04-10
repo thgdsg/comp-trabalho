@@ -120,8 +120,6 @@ cmdl: cmd cmdl
 // comandos da linguagem
 cmd: TK_IDENTIFIER '=' expr ';'
     | vec '=' expr ';'
-    | TK_IDENTIFIER '=' funcall ';'
-    | vec '=' funcall ';'
     | KW_IF '(' expr ')' cmdblock
     | KW_IF '(' expr ')' cmdblock KW_ELSE cmdblock
     | KW_IF '(' expr ')' cmdblock KW_ELSE cmd
