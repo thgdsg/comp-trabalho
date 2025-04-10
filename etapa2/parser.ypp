@@ -29,7 +29,12 @@ void yyerror(string msg);
 %token LIT_REAL
 %token LIT_STRING
 %token TOKEN_ERROR
-%define parse.trace
+
+%left '&' '|'
+%left '>' '<' OPERATOR_EQ OPERATOR_LE OPERATOR_GE OPERATOR_DIF
+%left '+' '-'
+%left '*' '/'
+%left '~'
 
 %%
 
@@ -64,7 +69,6 @@ kw_value: KW_INT
 
 // declaração de variáveis
 vardec: kw_value TK_IDENTIFIER '=' lit ';'
-    | vecdec
     ;
 
 // declaração de vetores
@@ -78,7 +82,7 @@ listvar: lit ',' listvar
     ;
 
 // declaração de funções
-fundec: kw_value TK_IDENTIFIER '(' argl ')' '{' cmdblock '}'
+fundec: kw_value TK_IDENTIFIER '(' argl ')' cmdblock
     ;
 
 // lista de argumentos (para declaração de funções (não pra chamadas))
@@ -92,8 +96,12 @@ arg: kw_value TK_IDENTIFIER
 
 // bloco de comandos
 cmdblock: '{' cmdblock '}'
-    | cmd cmdblock
+    | '{' cmdl '}'
+    ;
+
+cmdl: cmd cmdl
     | cmd
+    | cmdl cmdblock
     |
     ;
 
@@ -106,6 +114,8 @@ cmd: TK_IDENTIFIER '=' expr ';'
     | KW_IF '(' expr ')' cmdblock KW_ELSE cmdblock
     | KW_IF '(' expr ')' KW_THEN cmdblock
     | KW_IF '(' expr ')' KW_THEN cmdblock KW_ELSE cmdblock
+    | KW_IF '(' expr ')' cmdblock KW_ELSE cmd
+    | KW_IF '(' expr ')' KW_THEN cmdblock KW_ELSE cmd
     | KW_WHILE expr KW_DO cmdblock
     | KW_DO cmdblock KW_WHILE '(' expr ')' ';'
     | KW_READ TK_IDENTIFIER ';'
