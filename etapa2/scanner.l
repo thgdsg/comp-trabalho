@@ -76,7 +76,6 @@
 "else" {return KW_ELSE;}
 "do" {return KW_DO;}
 "while" {return KW_WHILE;}
-"then" {return KW_THEN;}
 "read" {return KW_READ;}
 "print" {return KW_PRINT;}
 "return" {return KW_RETURN;}

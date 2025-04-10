@@ -47,7 +47,7 @@ int main ()
     {
     x = incn(x,1);
     y = incn(y,y);
-    } while (x<01);
+    } while x<01;
 
   print "Dobrando algumas vezes y fica " y "\n";
 
@@ -57,7 +57,7 @@ int main ()
     print "A era=15\n";
     };
     
-  if (x=100) then
+  if (x=100)
     {
     print "Nao tem como isso...\n";
     }

@@ -6,13 +6,25 @@ using namespace std;
 int yylex();
 void yyerror(string msg);
 
+#define SYMBOL_INT_FUNC 1
+#define SYMBOL_REAL_FUNC 2
+#define SYMBOL_BYTE_FUNC 3
+#define SYMBOL_INT_LIT 4
+#define SYMBOL_REAL_LIT 5
+#define SYMBOL_BYTE_LIT 6
+#define SYMBOL_INT_ID 7
+#define SYMBOL_REAL_ID 8
+#define SYMBOL_BYTE_ID 9
+#define SYMBOL_INT_ARRAY 10
+#define SYMBOL_REAL_ARRAY 11
+#define SYMBOL_BYTE_ARRAY 12
+
 %}
 %locations
 %token KW_BYTE
 %token KW_INT
 %token KW_REAL
 %token KW_IF
-%token KW_THEN
 %token KW_ELSE
 %token KW_DO
 %token KW_WHILE
@@ -44,7 +56,6 @@ program: ldef
 // o programa é uma sequência de definições
 
 ldef: def ldef
-    | def
     |
     ;
 
@@ -97,12 +108,13 @@ arg: kw_value TK_IDENTIFIER
 // bloco de comandos
 cmdblock: '{' cmdblock '}'
     | '{' cmdl '}'
+    | '{' '}'
     ;
 
+// lista de comandos (pra blocos de comandos)
 cmdl: cmd cmdl
     | cmd
     | cmdl cmdblock
-    |
     ;
 
 // comandos da linguagem
@@ -112,12 +124,9 @@ cmd: TK_IDENTIFIER '=' expr ';'
     | vec '=' funcall ';'
     | KW_IF '(' expr ')' cmdblock
     | KW_IF '(' expr ')' cmdblock KW_ELSE cmdblock
-    | KW_IF '(' expr ')' KW_THEN cmdblock
-    | KW_IF '(' expr ')' KW_THEN cmdblock KW_ELSE cmdblock
     | KW_IF '(' expr ')' cmdblock KW_ELSE cmd
-    | KW_IF '(' expr ')' KW_THEN cmdblock KW_ELSE cmd
     | KW_WHILE expr KW_DO cmdblock
-    | KW_DO cmdblock KW_WHILE '(' expr ')' ';'
+    | KW_DO cmdblock KW_WHILE expr ';'
     | KW_READ TK_IDENTIFIER ';'
     | KW_PRINT printl ';'
     | KW_RETURN expr ';'
