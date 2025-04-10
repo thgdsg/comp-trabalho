@@ -150,6 +150,7 @@ expr: TK_IDENTIFIER
 // lista de expressões (para chamada de função)
 exprlist: expr ',' exprlist
     | expr
+    |
     ;
 
 // operadores aceitos pela linguagem
