@@ -6,3 +6,7 @@ int a = "wefgwsefwefewfwefewwefwsefwsefwefwef23q4re2";
 int p = 90/25;
 int b = "abababa\"asfdewfwe";
 int c = "!@$*(&!#(*#@^&*@#RY@#&*HRU\"\"\"IHinisdnfsdvsdververolkpef;we[f;w]s\))";
+
+if (x == 0){
+    x = 1;
+}

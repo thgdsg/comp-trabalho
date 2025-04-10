@@ -1,4 +1,7 @@
 %{
+// parser
+// Thiago dos Santos Gonçalves - 00344587
+// Semestre 2025/1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -6,18 +9,20 @@ using namespace std;
 int yylex();
 void yyerror(string msg);
 
+// TROCAR POR TIPO DO IDENTIFICADOR, DEIXAR NO SCANNER
 #define SYMBOL_INT_FUNC 1
 #define SYMBOL_REAL_FUNC 2
 #define SYMBOL_BYTE_FUNC 3
 #define SYMBOL_INT_LIT 4
 #define SYMBOL_REAL_LIT 5
-#define SYMBOL_BYTE_LIT 6
-#define SYMBOL_INT_ID 7
-#define SYMBOL_REAL_ID 8
-#define SYMBOL_BYTE_ID 9
-#define SYMBOL_INT_ARRAY 10
-#define SYMBOL_REAL_ARRAY 11
-#define SYMBOL_BYTE_ARRAY 12
+#define SYMBOL_STRING_LIT 6
+#define SYMBOL_CHAR_LIT 7
+#define SYMBOL_INT_ID 8
+#define SYMBOL_REAL_ID 9
+#define SYMBOL_BYTE_ID 10
+#define SYMBOL_INT_ARRAY 11
+#define SYMBOL_REAL_ARRAY 12
+#define SYMBOL_BYTE_ARRAY 13
 
 %}
 %locations
@@ -60,7 +65,7 @@ ldef: def ldef
     ;
 
 // definições podem ser blocos de comando, declarações de variáveis, funções ou vetores
-def: cmdblock
+def: cmdl
     | vardec
     | fundec
     | vecdec
@@ -93,7 +98,7 @@ listvar: lit ',' listvar
     ;
 
 // declaração de funções
-fundec: kw_value TK_IDENTIFIER '(' argl ')' cmdblock
+fundec: kw_value TK_IDENTIFIER '(' argl ')' cmd
     ;
 
 // lista de argumentos (para declaração de funções (não pra chamadas))
@@ -106,29 +111,27 @@ arg: kw_value TK_IDENTIFIER
     ;
 
 // bloco de comandos
-cmdblock: '{' cmdblock '}'
-    | '{' cmdl '}'
+cmdblock: '{' cmdl '}'
     | '{' '}'
     ;
 
 // lista de comandos (pra blocos de comandos)
 cmdl: cmd cmdl
     | cmd
-    | cmdl cmdblock
     ;
 
 // comandos da linguagem
 cmd: TK_IDENTIFIER '=' expr ';'
     | vec '=' expr ';'
-    | KW_IF '(' expr ')' cmdblock
-    | KW_IF '(' expr ')' cmdblock KW_ELSE cmdblock
-    | KW_IF '(' expr ')' cmdblock KW_ELSE cmd
-    | KW_WHILE expr KW_DO cmdblock
-    | KW_DO cmdblock KW_WHILE expr ';'
+    | KW_IF '(' expr ')' cmd
+    | KW_IF '(' expr ')' cmd KW_ELSE cmd
+    | KW_WHILE expr KW_DO cmd
+    | KW_DO cmd KW_WHILE expr ';'
     | KW_READ TK_IDENTIFIER ';'
     | KW_PRINT printl ';'
     | KW_RETURN expr ';'
     | ';'
+    | cmdblock
     ;
 
 // lista de argumentos pro comando print
@@ -158,7 +161,6 @@ operator: '+'
     | '/'
     | '>'
     | '<'
-    | '='
     | '&'
     | '|'
     | '~'
