@@ -27,13 +27,15 @@ void yyerror(string msg);
 %token LIT_CHAR
 %token LIT_REAL
 %token LIT_STRING
+%token TOKEN_ERROR
+%define parse.trace
 
 %%
 
 program: ldef
     ;
 
-ldef: def ';' ldef
+ldef: def ldef
     | def
     |
     ;

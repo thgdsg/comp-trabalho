@@ -9,7 +9,7 @@ etapa2: lex.yy.o main.o symbols.o parser.tab.o
 *.o: *.cpp
 	$(CXX) $(CXXFLAGS) $< -c
 
-lex.yy.cpp: scanner.l
+lex.yy.cpp: scanner.l parser.tab.hpp
 	flex -o lex.yy.cpp scanner.l
 
 parser.tab.hpp: parser.tab.cpp

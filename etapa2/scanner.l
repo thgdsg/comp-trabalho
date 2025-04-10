@@ -10,7 +10,7 @@
     int getLineNumber(){
         return line_count;
     }
-    #include "tokens.h"
+    #include "parser.tab.hpp"
     #include "symbols.hpp"
     #include <cstring>
     // pra números inteiros (feito com char* pra compatibilidade com yytext)
