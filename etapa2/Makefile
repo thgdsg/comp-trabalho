@@ -16,7 +16,7 @@ parser.tab.hpp: parser.tab.cpp
 	bison -d -o parser.tab.cpp parser.ypp
 
 parser.tab.cpp: parser.ypp
-	bison parser.ypp -d
+	bison parser.ypp -d -v
 
 clean:
-	rm etapa2 lex.yy.cpp parser.tab.cpp parser.tab.hpp *.o
+	rm etapa2 lex.yy.cpp parser.tab.cpp parser.tab.hpp parser.output *.o

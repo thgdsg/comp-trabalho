@@ -11,7 +11,7 @@ extern int isRunning();
 extern int getLineNumber();
 int yylex();
 int yyparse();
-// extern int yydebug; // pra debug se precisar
+//extern int yydebug; // pra debug se precisar
 extern int running;
 extern int line_count;
 
@@ -24,7 +24,7 @@ int main(int argc, char** argv){
         printf("Cannot open file %s\n", argv[1]);
         return 1;
     }
-    // yydebug = 1; // Ativa o modo debug do Bison
+//    yydebug = 1; // Ativa o modo debug do Bison
     yyparse();
     fprintf(stderr,"Parsing finished\n");
     fprintf(stderr,"File has %d lines\n", getLineNumber());
