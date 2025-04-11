@@ -1,4 +1,8 @@
 %{
+// scanner
+// Thiago dos Santos Gonçalves - 00344587
+// Semestre 2025/1
+
     int line_count = 1;
     int running = 1;
     void initMe(){
@@ -83,7 +87,7 @@
 [']([^'\\]|\\.)['] {symbolInsert(SYMBOL_CHAR,yytext); return LIT_CHAR;}
 \"(\\.|[^\\\"\n])*\" {symbolInsert(SYMBOL_STRING,yytext); addNewLines(yytext,&line_count); return LIT_STRING;}
 "//"[^\n]* {}
-[A-Za-z_]+[A-Za-z0-9_]* {symbolInsert(SYMBOL_ID,yytext); return TK_IDENTIFIER;}
+[A-Za-z_]+[A-Za-z0-9_]* { yylval = strdup(yytext); return TK_IDENTIFIER; }
 "<=" {return OPERATOR_LE;}
 ">=" {return OPERATOR_GE;}
 "==" {return OPERATOR_EQ;}

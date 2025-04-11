@@ -29,4 +29,5 @@ int main(int argc, char** argv){
     fprintf(stderr,"Parsing finished\n");
     fprintf(stderr,"File has %d lines\n", getLineNumber());
     symbolPrintTable();
+    exit(0);
 }

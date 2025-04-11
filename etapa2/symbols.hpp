@@ -6,7 +6,7 @@ using namespace std;
 
 // enum para os tipos de símbolos, baseada na vista em aula
 enum SymbolType {
-    SYMBOL_INVALID, SYMBOL_ID, SYMBOL_INT, SYMBOL_CHAR, SYMBOL_REAL, SYMBOL_STRING
+    SYMBOL_INVALID, SYMBOL_ID_INT, SYMBOL_ID_BYTE, SYMBOL_ID_REAL, SYMBOL_INT, SYMBOL_CHAR, SYMBOL_REAL, SYMBOL_STRING
 };
 
 // estrutura para os tipos de símbolos, baseada na vista em aula

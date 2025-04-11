@@ -5,27 +5,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include "symbols.hpp"
 using namespace std;
 int yylex();
 void yyerror(string msg);
 int getLineNumber();
-// TROCAR POR TIPO DO IDENTIFICADOR, DEIXAR NO SCANNER
-#define SYMBOL_INT_FUNC 1
-#define SYMBOL_REAL_FUNC 2
-#define SYMBOL_BYTE_FUNC 3
-#define SYMBOL_INT_LIT 4
-#define SYMBOL_REAL_LIT 5
-#define SYMBOL_STRING_LIT 6
-#define SYMBOL_CHAR_LIT 7
-#define SYMBOL_INT_ID 8
-#define SYMBOL_REAL_ID 9
-#define SYMBOL_BYTE_ID 10
-#define SYMBOL_INT_ARRAY 11
-#define SYMBOL_REAL_ARRAY 12
-#define SYMBOL_BYTE_ARRAY 13
+// TROCAR defines POR TIPO DO IDENTIFICADOR, DEIXAR NO SCANNER
+
 
 %}
-%locations
+//%define parse.trace
+%define api.value.type {char*}
 %token KW_BYTE
 %token KW_INT
 %token KW_REAL
@@ -74,19 +64,19 @@ lit: LIT_INT
     | LIT_REAL
     ;
 
-// todas as keywords de valores
-kw_value: KW_INT
-    | KW_REAL
-    | KW_BYTE
-    ;
-
 // declaração de variáveis
-vardec: kw_value TK_IDENTIFIER '=' lit ';'
+vardec: KW_INT TK_IDENTIFIER '=' lit ';' { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
+    | KW_REAL TK_IDENTIFIER '=' lit ';' { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
+    | KW_BYTE TK_IDENTIFIER '=' lit ';' { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
     ;
 
 // declaração de vetores
-vecdec: kw_value TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
-    | kw_value TK_IDENTIFIER '[' LIT_INT ']' ';'
+vecdec: KW_INT TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
+    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
+    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
+    | KW_INT TK_IDENTIFIER '[' LIT_INT ']' ';' { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
+    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' ';' { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
+    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' ';' { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
     ;
 
 // lista de variaveis (pra declaração de vetores)
@@ -95,7 +85,9 @@ listvar: lit ',' listvar
     ;
 
 // declaração de funções
-fundec: kw_value TK_IDENTIFIER '(' paraml ')' cmdblock
+fundec: KW_INT TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
+    | KW_REAL TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
+    | KW_BYTE TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
     ;
 
 // lista de parâmetros (para declaração de funções (não pra chamadas))
@@ -103,7 +95,9 @@ paraml: param ',' paraml
     | param
     ;
 
-param: kw_value TK_IDENTIFIER
+param: KW_INT TK_IDENTIFIER
+    | KW_REAL TK_IDENTIFIER
+    | KW_BYTE TK_IDENTIFIER
     | 
     ;
 
@@ -146,7 +140,9 @@ expr: TK_IDENTIFIER
     | A operator A
     | A operator A '[' expr ']'
     | funcall
-    | kw_value TK_IDENTIFIER '(' ')'
+    | KW_INT TK_IDENTIFIER '(' ')' { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
+    | KW_REAL TK_IDENTIFIER '(' ')' { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
+    | KW_BYTE TK_IDENTIFIER '(' ')' { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
     ;
 
 // lista de expressões (para chamada de função)
@@ -188,7 +184,6 @@ A: TK_IDENTIFIER
 %%
 
 void yyerror(string msg){
-    extern YYLTYPE yylloc;
     fprintf(stderr, "Erro de sintaxe na linha %d: %s\n", getLineNumber(), msg.c_str());
     exit(3);
 }
