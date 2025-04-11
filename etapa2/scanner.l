@@ -92,7 +92,7 @@
 "\n" {++line_count;}
 " " {}
 "\t" {}
-. {return TOKEN_ERROR;}
+. {}
 
 <COMMENT>"\n" {++line_count;}
 <COMMENT>. {}

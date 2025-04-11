@@ -15,11 +15,11 @@ int v[01] = 'a',0,'b',0,0,0,0,0,0,0;
 
 int matrix[001]; 
 
-if (x == 0){
+byte ppp(int a,real b){
   print 
   a[12] "asdasdasd";
   ababa = 100;
-  banana(1234,'a');
+  banan = banana(1234,'a');
 }
 
 real num = 5/7;	// note que 5/7 nao eh uma expressao, eh um literal real

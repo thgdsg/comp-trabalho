@@ -45,7 +45,6 @@ int getLineNumber();
 %token LIT_CHAR
 %token LIT_REAL
 %token LIT_STRING
-%token TOKEN_ERROR
 
 %left '&' '|'
 %left '>' '<' OPERATOR_EQ OPERATOR_LE OPERATOR_GE OPERATOR_DIF
@@ -65,19 +64,17 @@ ldef: def ldef
     ;
 
 // definições podem ser blocos de comando, declarações de variáveis, funções ou vetores
-def: cmdl
-    | vardec
+def: vardec
     | fundec
     | vecdec
 
-// todos os literais possiveis
+// todos os literais menos strings
 lit: LIT_INT
     | LIT_CHAR
     | LIT_REAL
-    | LIT_STRING
     ;
 
-// todas as keywords de valores possiveis
+// todas as keywords de valores
 kw_value: KW_INT
     | KW_REAL
     | KW_BYTE
@@ -98,7 +95,7 @@ listvar: lit ',' listvar
     ;
 
 // declaração de funções
-fundec: kw_value TK_IDENTIFIER '(' paraml ')' cmd
+fundec: kw_value TK_IDENTIFIER '(' paraml ')' cmdblock
     ;
 
 // lista de parâmetros (para declaração de funções (não pra chamadas))
