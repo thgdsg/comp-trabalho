@@ -65,6 +65,7 @@ lit: LIT_INT
     ;
 
 // declaração de variáveis
+// tipo do identificador da variável agora inserido na tabela de símbolos
 vardec: KW_INT TK_IDENTIFIER '=' lit ';' { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
     | KW_REAL TK_IDENTIFIER '=' lit ';' { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
     | KW_BYTE TK_IDENTIFIER '=' lit ';' { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
@@ -88,6 +89,9 @@ listvar: lit ',' listvar
 fundec: KW_INT TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
     | KW_REAL TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
     | KW_BYTE TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
+    | KW_INT TK_IDENTIFIER '(' ')' cmdblock { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
+    | KW_REAL TK_IDENTIFIER '(' ')' cmdblock { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
+    | KW_BYTE TK_IDENTIFIER '(' ')' cmdblock { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
     ;
 
 // lista de parâmetros (para declaração de funções (não pra chamadas))
@@ -98,7 +102,6 @@ paraml: param ',' paraml
 param: KW_INT TK_IDENTIFIER
     | KW_REAL TK_IDENTIFIER
     | KW_BYTE TK_IDENTIFIER
-    | 
     ;
 
 // bloco de comandos
@@ -136,13 +139,14 @@ printl: expr printl
 expr: TK_IDENTIFIER
     | LIT_CHAR
     | LIT_INT
+    | LIT_REAL
     | TK_IDENTIFIER '[' expr ']'
-    | A operator A
-    | A operator A '[' expr ']'
+    | expr operator expr
     | funcall
     | KW_INT TK_IDENTIFIER '(' ')' { symbolInsert(SYMBOL_ID_INT, $2); free($2); }
     | KW_REAL TK_IDENTIFIER '(' ')' { symbolInsert(SYMBOL_ID_REAL, $2); free($2); }
     | KW_BYTE TK_IDENTIFIER '(' ')' { symbolInsert(SYMBOL_ID_BYTE, $2); free($2); }
+    | '(' expr ')'
     ;
 
 // lista de expressões (para chamada de função)
@@ -171,15 +175,6 @@ operator: '+'
 funcall: TK_IDENTIFIER '(' exprlist ')'
     ;
 
-//operadores A e B pra expressões
-A: TK_IDENTIFIER
-    | LIT_INT
-    | LIT_CHAR
-    | LIT_REAL
-    | LIT_STRING
-    | TK_IDENTIFIER '[' expr ']'
-    | TK_IDENTIFIER '[' ']'
-    ;
 
 %%
 

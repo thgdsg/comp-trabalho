@@ -3,7 +3,6 @@
 // Semestre 2025/1
 #include <stdio.h>
 #include <stdlib.h>
-#include "tokens.h"
 #include "symbols.hpp"
 
 extern FILE* yyin;
