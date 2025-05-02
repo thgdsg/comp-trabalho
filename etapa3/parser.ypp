@@ -1,0 +1,249 @@
+%{
+// parser
+// Thiago dos Santos Gonçalves - 00344587
+// Semestre 2025/1
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include "symbols.hpp"
+#include "ast.hpp"
+#include <cstring>
+using namespace std;
+int yylex();
+void yyerror(string msg);
+
+int getLineNumber();
+%}
+//%define parse.trace
+%code requires {
+  #include "symbols.hpp"
+  #include "ast.hpp"
+}
+%union {
+    char* sval;
+    SYMBOL* symbol;
+    AST* ast;
+}
+%token KW_BYTE
+%token KW_INT
+%token KW_REAL
+%token KW_IF
+%token KW_ELSE
+%token KW_DO
+%token KW_WHILE
+%token KW_READ
+%token KW_PRINT
+%token KW_RETURN
+%token OPERATOR_EQ
+%token OPERATOR_LE
+%token OPERATOR_GE
+%token OPERATOR_DIF
+
+%token<sval> TK_IDENTIFIER
+%token<symbol> LIT_INT
+%token<symbol> LIT_CHAR
+%token<symbol> LIT_REAL
+%token<symbol> LIT_STRING
+
+%type<ast> expr cmdblock cmdl cmd
+%type<ast> def ldef fundec vardec vecdec listvar paraml param
+%type<ast> exprlist printl funcall operator
+
+%left '&' '|'
+%left '>' '<' OPERATOR_EQ OPERATOR_LE OPERATOR_GE OPERATOR_DIF
+%left '+' '-'
+%left '*' '/'
+%left '~'
+
+%%
+
+program:
+    ldef
+    { 
+      /* $1 é um AST* apontando para lista de definições */
+      AST* raiz = $1;
+      astPrint(raiz);
+    }
+    ;
+// o programa é uma sequência de definições
+
+ldef:
+    /* encadeia definições */
+    def ldef  { $$ = new AST(AST_DEF, { $1, $2 }); }
+  | /* vazio */ { $$ = nullptr; }
+    ;
+
+// definições podem ser declarações de variáveis, funções ou vetores
+def: vardec
+    | fundec
+    | vecdec
+
+// todos os literais menos strings
+lit: LIT_INT
+    | LIT_CHAR
+    | LIT_REAL
+    ;
+
+// declaração de variáveis
+// tipo do identificador da variável agora inserido na tabela de símbolos
+vardec: KW_INT TK_IDENTIFIER '=' lit ';'
+    {
+      SYMBOL* id    = symbolInsert(SYMBOL_ID_INT, $2); free($2);
+      SYMBOL* lit   = $4;                                      
+      AST*    n_id  = new AST(AST_SYMBOL, {}, id);            
+      AST*    n_lit = new AST(AST_SYMBOL, {}, lit);          
+      $$ = new AST(AST_ATTR, { n_id, n_lit });
+    }
+    | KW_REAL TK_IDENTIFIER '=' lit ';'     
+    {
+      SYMBOL* id    = symbolInsert(SYMBOL_ID_REAL, $2); free($2);
+      SYMBOL* lit   = $4;                                      
+      AST*    n_id  = new AST(AST_SYMBOL, {}, id);            
+      AST*    n_lit = new AST(AST_SYMBOL, {}, lit);          
+      $$ = new AST(AST_ATTR, { n_id, n_lit });
+    }
+    | KW_BYTE TK_IDENTIFIER '=' lit ';' 
+    {
+      SYMBOL* id    = symbolInsert(SYMBOL_ID_BYTE, $2); free($2);
+      SYMBOL* lit   = $4;                                      
+      AST*    n_id  = new AST(AST_SYMBOL, {}, id);            
+      AST*    n_lit = new AST(AST_SYMBOL, {}, lit);          
+      $$ = new AST(AST_ATTR, { n_id, n_lit });
+    }
+    ;
+
+// declaração de vetores
+vecdec: KW_INT TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' 
+    { 
+    SYMBOL* id = symbolInsert(SYMBOL_ID_INT, $2); free($2);
+    SYMBOL* lit = $5;
+    AST* n_id = new AST(AST_SYMBOL, {}, id);
+    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
+    $$ = new AST(AST_ATTR, { n_id, n_lit });
+    }
+    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' 
+    { 
+    SYMBOL* id = symbolInsert(SYMBOL_ID_REAL, $2); free($2);
+    SYMBOL* lit = $5;
+    AST* n_id = new AST(AST_SYMBOL, {}, id);
+    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
+    $$ = new AST(AST_ATTR, { n_id, n_lit });
+    }
+    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' { symbolInsert(SYMBOL_ID_BYTE, $2); }
+    | KW_INT TK_IDENTIFIER '[' LIT_INT ']' ';' { symbolInsert(SYMBOL_ID_INT, $2); }
+    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' ';' { symbolInsert(SYMBOL_ID_REAL, $2); }
+    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' ';' { symbolInsert(SYMBOL_ID_BYTE, $2); }
+    ;
+
+// lista de variaveis (pra declaração de vetores)
+listvar: lit ',' listvar
+    | lit
+    ;
+
+// declaração de funções
+fundec: KW_INT TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_INT, $2); }
+    | KW_REAL TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_REAL, $2); }
+    | KW_BYTE TK_IDENTIFIER '(' paraml ')' cmdblock { symbolInsert(SYMBOL_ID_BYTE, $2); }
+    | KW_INT TK_IDENTIFIER '(' ')' cmdblock { symbolInsert(SYMBOL_ID_INT, $2); }
+    | KW_REAL TK_IDENTIFIER '(' ')' cmdblock { symbolInsert(SYMBOL_ID_REAL, $2); }
+    | KW_BYTE TK_IDENTIFIER '(' ')' cmdblock { symbolInsert(SYMBOL_ID_BYTE, $2); }
+    ;
+
+// lista de parâmetros (para declaração de funções (não pra chamadas))
+paraml: param ',' paraml 
+    | param
+    ;
+
+param: KW_INT TK_IDENTIFIER { symbolInsert(SYMBOL_ID_INT, $2); }
+    | KW_REAL TK_IDENTIFIER { symbolInsert(SYMBOL_ID_REAL, $2); }
+    | KW_BYTE TK_IDENTIFIER { symbolInsert(SYMBOL_ID_BYTE, $2); }
+    ;
+
+// bloco de comandos
+cmdblock: '{' cmdl '}'
+    | '{' '}'
+    ;
+
+// lista de comandos (pra blocos de comandos)
+cmdl: cmd cmdl 
+    | cmd 
+    ;
+
+// comandos da linguagem
+cmd: TK_IDENTIFIER '=' expr ';' 
+    | TK_IDENTIFIER '[' expr ']' '=' expr ';'
+    | KW_IF '(' expr ')' cmd
+    | KW_IF '(' expr ')' cmd KW_ELSE cmd
+    | KW_WHILE expr KW_DO cmd
+    | KW_DO cmd KW_WHILE expr ';'
+    | KW_READ TK_IDENTIFIER ';'
+    | KW_PRINT printl ';'
+    | KW_RETURN expr ';'
+    | ';'  
+    | cmdblock
+    ;
+
+// lista de argumentos pro comando print
+printl: expr printl
+    | LIT_STRING printl
+    | LIT_STRING
+    | expr
+    ;
+
+// expressões da linguagem
+expr: TK_IDENTIFIER { SYMBOL* sym = symbolInsert(SYMBOL_ID, $1); free($1); $$ = new AST(AST_SYMBOL, {}, sym); }
+    | LIT_CHAR { $$ = new AST(AST_SYMBOL, {}, $1); }
+    | LIT_INT     { $$ = new AST(AST_SYMBOL, {}, $1);}
+    | LIT_REAL    { $$ = new AST(AST_SYMBOL, {}, $1);}
+    | TK_IDENTIFIER '[' expr ']' { 
+      SYMBOL* sym = symbolInsert(SYMBOL_ID, $1); free($1);
+      AST* n_id = new AST(AST_SYMBOL, {}, sym);
+      AST* n_idx = $3;
+      $$ = new AST(AST_ARRAY, { n_id, n_idx });
+    }
+    | expr operator expr { 
+      AST* n_left = $1;
+      AST* n_op   = new AST(AST_SYMBOL, {}, $2);
+      AST* n_right= $3;
+      $$ = new AST(AST_OP, { n_left, n_op, n_right });
+    }
+    | funcall { $$ = $1; }
+    | KW_INT TK_IDENTIFIER '(' ')' { AST* n_id = new AST(AST_SYMBOL, {}, symbolInsert(SYMBOL_ID_INT, $2)); free($2); $$ = n_id; }
+    | KW_REAL TK_IDENTIFIER '(' ')' { AST* n_id = new AST(AST_SYMBOL, {}, symbolInsert(SYMBOL_ID_REAL, $2)); free($2); $$ = n_id; }
+    | KW_BYTE TK_IDENTIFIER '(' ')' { AST* n_id = new AST(AST_SYMBOL, {}, symbolInsert(SYMBOL_ID_BYTE, $2)); free($2); $$ = n_id; }
+    | '(' expr ')' { $$ = $2; }
+    ;
+
+// lista de expressões (para chamada de função)
+exprlist: expr ',' exprlist {  $$ = new AST(AST_LIST, { $1, $3 }); }
+    | expr { $$ = $1;}
+    |
+    ;
+
+// operadores aceitos pela linguagem
+operator: '+'
+    | '-'
+    | '*'
+    | '/'
+    | '>'
+    | '<'
+    | '&'
+    | '|'
+    | '~'
+    | OPERATOR_EQ
+    | OPERATOR_LE
+    | OPERATOR_GE
+    | OPERATOR_DIF
+    ;
+
+// chamada de função
+funcall: TK_IDENTIFIER '(' exprlist ')'
+    ;
+
+
+%%
+
+void yyerror(string msg){
+    fprintf(stderr, "Erro de sintaxe na linha %d: %s\n", getLineNumber(), msg.c_str());
+    exit(3);
+}
