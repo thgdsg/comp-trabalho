@@ -22,6 +22,17 @@ SYMBOL *symbolInsert(int type, char* text){
     return newsymbol;
 }
 
+// função para buscar símbolos na tabela (não utilizada)
+SYMBOL* symbolLookup(char* text) {
+    // utiliza o find() do map pra buscar o símbolo
+    auto it = SymbolTable.find(string(text));
+    if (it == SymbolTable.end()) {
+        SYMBOL* a = symbolInsert(SYMBOL_INVALID, text);
+        return a;
+    }
+    return it->second;
+}
+
 // função pra imprimir símbolos da tabela, baseada na feita em aula
 void symbolPrintTable(){
     for (auto s : SymbolTable){

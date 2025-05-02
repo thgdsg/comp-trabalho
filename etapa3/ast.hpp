@@ -13,9 +13,13 @@
 enum ASTTypes{
     AST_UNKNOWN,
     AST_SYMBOL,
-    AST_ATTR,
     AST_DEF,
-    AST_ARRAY,
+    AST_VAR_ATTR, AST_VEC_ATTR, AST_FUN_ATTR,
+    AST_VAR_LIST, AST_PARAM_LIST, AST_EXPR_LIST, AST_PRINT_LIST, AST_CMD_LIST,
+    AST_CMD_IF, AST_CMD_IFELSE, AST_CMD_WHILE, AST_CMD_DOWHILE,
+    AST_CMD_ASSIGN, AST_CMD_VEC_ASSIGN, AST_CMD_READ, AST_CMD_PRINT, AST_CMD_RETURN, 
+    AST_BLOCKCMD,
+    AST_VEC, AST_FUNCALL,
     AST_ADD, AST_SUB, AST_MUL, AST_DIV,
     AST_LESS, AST_LEQ, AST_GREATER, AST_GEQ,
     AST_EQUAL, AST_NEQUAL,
@@ -30,6 +34,6 @@ struct AST{
     public: AST (int t, vector<AST*> v, SYMBOL* s=0): tipo(t), filho(v), simbolo(s) {};
 };
 
-void astPrint(AST* nodo);
+void astPrint(AST* nodo, int nivel=0);
 
 #endif

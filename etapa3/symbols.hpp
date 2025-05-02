@@ -21,6 +21,7 @@ struct SYMBOL{
 
 // declaração de funções
 SYMBOL *symbolInsert(int type, char* text);
+SYMBOL* symbolLookup(char* text);
 void symbolPrintTable();
 
 #endif
