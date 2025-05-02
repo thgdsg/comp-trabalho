@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "symbols.hpp"
+#include "ast.hpp"
 
 extern FILE* yyin;
 extern int isRunning();

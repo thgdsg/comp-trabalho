@@ -11,11 +11,15 @@ int y = 1;
 
 int v[01] = 'a',0,'b',0,0,0,0,0,0,0;
 
+// declaracao de um vetor de 1 posicao
+
+int vec[1] = 'd';
+
 // declaracao de uma matriz de 100 posicoes, nao inicializada
 
 int matrix[001]; 
 
-byte ppp(int a,real b){
+byte ppp(int ab,real ba, byte ca){
   print 
   a[12] "asdasdasd";
   ababa = 100;
@@ -69,13 +73,13 @@ int main ()
     }
   else
     print "OK!\n"; 
-  {{}} {}
+
   }
 
-int incn (int p, int n )
-  {
+int incm (int p, int n )
+{
   return p + n;
-  }
+}
 
 // end of file
   

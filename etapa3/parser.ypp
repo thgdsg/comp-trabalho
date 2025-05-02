@@ -63,6 +63,7 @@ program:
       /* $1 é um AST* apontando para lista de definições */
       AST* raiz = $1;
       astPrint(raiz,0);
+      astGenerateToFile(raiz,"saida.txt");
     }
     ;
 // o programa é uma sequência de definições
@@ -207,7 +208,7 @@ fundec: KW_INT TK_IDENTIFIER '(' paraml ')' cmdblock
 
 // lista de parâmetros (para declaração de funções (não pra chamadas))
 paraml: param ',' paraml { $$ = new AST(AST_PARAM_LIST, { $1, $3 }); }
-    | param { $$ = $1; }
+    | param { $$ = new AST(AST_PARAM_LIST, { $1,}); }
     ;
 
 param: KW_INT TK_IDENTIFIER 

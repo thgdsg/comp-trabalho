@@ -16,48 +16,8 @@
     }
     #include "parser.tab.hpp"
     #include "symbols.hpp"
+    #include "ast.hpp"
     #include <cstring>
-    // pra números inteiros (feito com char* pra compatibilidade com yytext)
-    char* reverseInt(const char* s) {
-        size_t len = strlen(s);
-        char* reversed = new char[len + 1];
-        // cria uma string nova e copia os caracteres na ordem inversa
-        for (size_t i = 0; i < len; ++i) {
-            reversed[i] = s[len - 1 - i];
-        }
-        reversed[len] = '\0';
-        return reversed;
-    }
-    // pra números reais
-    char* reverseRealNumber(const char* s) {
-        // cria uma cópia da string pra tokenização
-        char* copy = new char[strlen(s) + 1];
-        strcpy(copy, s);
-        
-        // usa '/' como delimitador pra separar as duas partes
-        char* part1 = strtok(copy, "/");
-        char* part2 = strtok(NULL, "/");
-        
-        // inverte cada parte utilizando reverseInt
-        char* rev1 = reverseInt(part1);
-        char* rev2 = reverseInt(part2);
-        
-        // calcula o tamanho necessário pra a string resultado
-        size_t len1 = strlen(rev1);
-        size_t len2 = strlen(rev2);
-        char* result = new char[len1 + len2 + 2]; // +1 pra barra e +1 pra '\0'
-        
-        strcpy(result, rev1);
-        strcat(result, "/");
-        strcat(result, rev2);
-        
-        // libera a memória alocada
-        delete[] rev1;
-        delete[] rev2;
-        delete[] copy;
-        
-        return result;
-    }
     // pra strings com "\n" no meio
     void addNewLines(const char* s, int* line_count) {
         for (size_t i = 0; i < std::strlen(s); ++i) {

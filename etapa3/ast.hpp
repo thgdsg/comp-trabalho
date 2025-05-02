@@ -34,6 +34,10 @@ struct AST{
     public: AST (int t, vector<AST*> v, SYMBOL* s=0): tipo(t), filho(v), simbolo(s) {};
 };
 
+char* reverseInt(const char* s);
+char* reverseRealNumber(const char* s);
 void astPrint(AST* nodo, int nivel=0);
+void astGenerate(AST* nodo, FILE* out, int indent = 0);
+void astGenerateToFile(AST* raiz, const char* filename);
 
 #endif

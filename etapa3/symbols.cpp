@@ -22,7 +22,7 @@ SYMBOL *symbolInsert(int type, char* text){
     return newsymbol;
 }
 
-// função para buscar símbolos na tabela (não utilizada)
+// função para buscar símbolos na tabela (se não achar, cria um novo símbolo com tipo inválido)
 SYMBOL* symbolLookup(char* text) {
     // utiliza o find() do map pra buscar o símbolo
     auto it = SymbolTable.find(string(text));
