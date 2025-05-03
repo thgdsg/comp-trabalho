@@ -231,32 +231,6 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             astGenerate(nodo->filho[1], out, indent);
             break;
         }
-        case AST_CMD_ASSIGN:{
-            printIndent(out, indent);
-            // filho[0] é o id, filho[1] é a expressão
-            astGenerate(nodo->filho[0], out, 0);
-            fputs(" = ", out);
-            astGenerate(nodo->filho[1], out, 0);
-            fputs(";\n", out);
-            break;
-        }
-        case AST_CMD_VEC_ASSIGN:{
-            printIndent(out, indent);
-            // filho[0] é AST_VEC, filho[1] é a expressão
-            astGenerate(nodo->filho[0], out, 0);
-            fputs(" = ", out);
-            astGenerate(nodo->filho[1], out, 0);
-            fputs(";\n", out);
-            break;
-        }
-        case AST_VEC:{
-            // vetor: filho[0]=id, filho[1]=índice
-            astGenerate(nodo->filho[0], out, 0);
-            fputc('[', out);
-            astGenerate(nodo->filho[1], out, 0);
-            fputc(']', out);
-            break;
-        }
         case AST_CMD_IF:{
             printIndent(out, indent);
             fputs("if (", out);
@@ -294,6 +268,24 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             fputs(";\n", out);
             break;
         }
+        case AST_CMD_ASSIGN:{
+            printIndent(out, indent);
+            // filho[0] é o id, filho[1] é a expressão
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" = ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            fputs(";\n", out);
+            break;
+        }
+        case AST_CMD_VEC_ASSIGN:{
+            printIndent(out, indent);
+            // filho[0] é AST_VEC, filho[1] é a expressão
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" = ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            fputs(";\n", out);
+            break;
+        }
         case AST_CMD_READ:{
             printIndent(out, indent);
             fputs("read ", out);
@@ -324,6 +316,14 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             fputs("}\n", out);
             break;
         }
+        case AST_VEC:{
+            // vetor: filho[0]=id, filho[1]=índice
+            astGenerate(nodo->filho[0], out, 0);
+            fputc('[', out);
+            astGenerate(nodo->filho[1], out, 0);
+            fputc(']', out);
+            break;
+        }
         case AST_FUNCALL:{
             // filho[0]=id, filho[1]=exprlist
             astGenerate(nodo->filho[0], out, 0);
@@ -332,7 +332,83 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             fputc(')', out);
             break;
         }
-        // … trate os outros tipos (operações binárias/unárias) de forma análoga …
+        case AST_ADD:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" + ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_SUB:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" - ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_MUL:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" * ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_DIV:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" / ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_LESS:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" < ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_LEQ:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" <= ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_GREATER:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" > ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_GEQ:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" >= ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_EQUAL:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" == ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_NEQUAL:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" != ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_AND:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" & ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_OR:{
+            astGenerate(nodo->filho[0], out, 0);
+            fputs(" | ", out);
+            astGenerate(nodo->filho[1], out, 0);
+            break;
+        }
+        case AST_NOT:{
+            fputs("~", out);
+            astGenerate(nodo->filho[0], out, 0);
+            break;
+        }
         default:
         // para outros nós, apenas recursa sobre os filhos
         for(auto f : nodo->filho)
