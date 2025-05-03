@@ -92,6 +92,7 @@ void astGenerate(AST* nodo, FILE* out, int indent){
     switch(nodo->tipo){
         case AST_SYMBOL:{
             // identificador ou literal
+            // caso sejam INTs ou REALs, inverte a string
             if (nodo->simbolo->type == SYMBOL_INT){
                 char* inteiro = reverseInt(nodo->simbolo->text.c_str());
                 fputs(inteiro, out);
@@ -234,9 +235,9 @@ void astGenerate(AST* nodo, FILE* out, int indent){
         case AST_CMD_IF:{
             printIndent(out, indent);
             fputs("if (", out);
-            astGenerate(nodo->filho[0], out, 0);
+            astGenerate(nodo->filho[0], out, indent);
             fputs(") ", out);
-            astGenerate(nodo->filho[1], out, indent);
+            astGenerate(nodo->filho[1], out, 0);
             break;
         }
         case AST_CMD_IFELSE:{
@@ -244,16 +245,16 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             fputs("if (", out);
             astGenerate(nodo->filho[0], out, 0);
             fputs(") ", out);
-            astGenerate(nodo->filho[1], out, indent);
+            astGenerate(nodo->filho[1], out, 0);
             printIndent(out, indent);
             fputs("else ", out);
-            astGenerate(nodo->filho[2], out, indent);
+            astGenerate(nodo->filho[2], out, 0);
             break;
         }
         case AST_CMD_WHILE:{
             printIndent(out, indent);
             fputs("while ", out);
-            astGenerate(nodo->filho[0], out, 0);
+            astGenerate(nodo->filho[0], out, indent);
             fputs(" do\n", out);
             astGenerate(nodo->filho[1], out, indent+1);
             break;
@@ -264,13 +265,12 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             astGenerate(nodo->filho[0], out, indent+1);
             printIndent(out, indent);
             fputs("while ", out);
-            astGenerate(nodo->filho[1], out, 0);
+            astGenerate(nodo->filho[1], out, indent);
             fputs(";\n", out);
             break;
         }
         case AST_CMD_ASSIGN:{
             printIndent(out, indent);
-            // filho[0] é o id, filho[1] é a expressão
             astGenerate(nodo->filho[0], out, 0);
             fputs(" = ", out);
             astGenerate(nodo->filho[1], out, 0);
@@ -279,7 +279,6 @@ void astGenerate(AST* nodo, FILE* out, int indent){
         }
         case AST_CMD_VEC_ASSIGN:{
             printIndent(out, indent);
-            // filho[0] é AST_VEC, filho[1] é a expressão
             astGenerate(nodo->filho[0], out, 0);
             fputs(" = ", out);
             astGenerate(nodo->filho[1], out, 0);
@@ -317,7 +316,6 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             break;
         }
         case AST_VEC:{
-            // vetor: filho[0]=id, filho[1]=índice
             astGenerate(nodo->filho[0], out, 0);
             fputc('[', out);
             astGenerate(nodo->filho[1], out, 0);
@@ -325,7 +323,6 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             break;
         }
         case AST_FUNCALL:{
-            // filho[0]=id, filho[1]=exprlist
             astGenerate(nodo->filho[0], out, 0);
             fputc('(', out);
             astGenerate(nodo->filho[1], out, 0);
@@ -410,9 +407,10 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             break;
         }
         default:
-        // para outros nós, apenas recursa sobre os filhos
+        // pros outros nós, apenas aplica recursão
         for(auto f : nodo->filho)
             astGenerate(f, out, indent);
+        break;
     }
 }
 

@@ -12,6 +12,7 @@ using namespace std;
 int yylex();
 void yyerror(string msg);
 
+AST* raiz = nullptr;
 int getLineNumber();
 %}
 //%define parse.trace
@@ -60,18 +61,15 @@ int getLineNumber();
 program:
     ldef
     { 
-      /* $1 é um AST* apontando para lista de definições */
-      AST* raiz = $1;
-      astPrint(raiz,0);
-      astGenerateToFile(raiz,"saida.txt");
+      raiz = $1;
     }
     ;
 // o programa é uma sequência de definições
 
 ldef:
-    /* encadeia definições */
+    // encadeia as definições 
     def ldef  { $$ = new AST(AST_DEF, { $1, $2 }); }
-  | /* vazio */ { $$ = nullptr; }
+    | { $$ = nullptr; }
     ;
 
 // definições podem ser declarações de variáveis, funções ou vetores
@@ -87,7 +85,6 @@ lit: LIT_INT { $$ = new AST(AST_SYMBOL, {}, $1); }
     ;
 
 // declaração de variáveis
-// tipo do identificador da variável agora inserido na tabela de símbolos
 vardec: KW_INT TK_IDENTIFIER '=' lit ';'
     {
       SYMBOL* id    = symbolInsert(SYMBOL_ID_INT, $2); free($2);
