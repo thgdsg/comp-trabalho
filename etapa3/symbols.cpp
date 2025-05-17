@@ -15,10 +15,24 @@ vector<string> symbolName = { "SYMBOL_INVALID", "SYMBOL_ID_INT", "SYMBOL_ID_BYTE
 
 // função para inserir símbolos na tabela, baseada na feita em aula
 SYMBOL *symbolInsert(int type, char* text){
-    if (SymbolTable.find(string(text)) != SymbolTable.end())
-        return SymbolTable[string(text)];
-    SYMBOL *newsymbol = new SYMBOL(type, string(text));
-    SymbolTable[string(text)] = newsymbol;
+    // converte texto para chave
+    std::string key(text);
+    // busca na tabela
+    auto it = SymbolTable.find(key);
+    if (it != SymbolTable.end()) {
+        // se achar mas tipo for inválido, remove e cria símbolo novo
+        if (it->second->type == SYMBOL_INVALID) {
+            delete it->second;
+            SymbolTable.erase(it);
+        }
+        // se achar e tipo não for inválido, retorna o símbolo existente
+        else {
+            return it->second;
+        }
+    }
+    // insere novo símbolo
+    SYMBOL *newsymbol = new SYMBOL(type, key);
+    SymbolTable[key] = newsymbol;
     return newsymbol;
 }
 

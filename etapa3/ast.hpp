@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <cstdint>
 #include "symbols.hpp"
 
 enum ASTTypes{
