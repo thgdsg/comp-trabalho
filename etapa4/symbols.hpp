@@ -2,6 +2,7 @@
 // Thiago dos Santos Gonçalves - 00344587
 // Semestre 2025/1
 #include <string>
+#include <vector>
 #ifndef SYMBOLS_HPP
 #define SYMBOLS_HPP
 using namespace std;
@@ -21,6 +22,8 @@ struct SYMBOL{
     int type;
     int dataType;
     string text;
+    // paramTypes SÓ PRA FUNÇÕES
+    vector<int> paramTypes;
     public:
         SYMBOL(int t, int d, string s): type(t), dataType(d), text(s) {};
 };

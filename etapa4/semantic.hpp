@@ -15,6 +15,6 @@
 extern int semanticErrors;
 
 int semanticCheck(AST* nodo);
-void checkUndeclared();
+int getDataType(AST* expr);
 
 #endif

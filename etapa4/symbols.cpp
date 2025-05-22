@@ -53,10 +53,32 @@ SYMBOL* symbolLookup(char* text) {
 
 // função pra imprimir símbolos da tabela, baseada na feita em aula
 void symbolPrintTable(){
-    for (auto s : SymbolTable){
-        int t = s.second->type;
-        // dei cast em t de int pra size_t pra evitar warning de comparação entre signed e unsigned
-        const auto name = (t >= 0 && static_cast<size_t>(t) < symbolName.size()) ? symbolName[t] : "ERRO/DEBUG";
-        printf("Symbol[%s, %s]\n", name.c_str(), s.second->text.c_str());
-    }
-}
+     for (auto s : SymbolTable){
+         int t  = s.second->type;
+         int dt = s.second->dataType;
+         // nome do tipo léxico
+         const auto tipo = (t >= 0 && static_cast<size_t>(t) < symbolName.size())
+             ? symbolName[t] : "ERRO/DEBUG";
+         // nome do dataType
+         const auto tipoDado = (dt >= 0 && static_cast<size_t>(dt) < dataType.size())
+             ? dataType[dt] : "ERRO/DEBUG";
+ 
+        // começa a imprimir
+        printf("Symbol[%s, %s, %s", tipo.c_str(), tipoDado.c_str(), s.second->text.c_str());
+        // se tiver parâmetros, imprime eles
+        if (!s.second->paramTypes.empty()) {
+            printf(", params=");
+            for (size_t i = 0; i < s.second->paramTypes.size(); ++i) {
+                int p = s.second->paramTypes[i];
+                // nome do tipo léxico do parâmetro
+                const auto pName = (p >= 0 && static_cast<size_t>(p) < symbolName.size())
+                    ? symbolName[p] : "ERRO/DEBUG";
+                printf("%s%s",
+                    pName.c_str(),
+                    (i + 1 < s.second->paramTypes.size()) ? "," : "");
+            }
+        }
+        // fecha colchete e pula linha
+        printf("]\n");
+     }
+ }

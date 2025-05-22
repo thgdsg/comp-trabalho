@@ -33,6 +33,7 @@ int main(int argc, char** argv){
     // gera o .txt usando o nome passado em argv[2]
     astGenerateToFile(raiz, argv[2]);
     int errosSemanticos = semanticCheck(raiz);
+    symbolPrintTable();
     if (errosSemanticos > 0) {
         fprintf(stderr, "Found %d semantic errors\n", errosSemanticos);
         exit(3);
