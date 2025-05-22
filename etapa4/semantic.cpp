@@ -29,10 +29,14 @@ using namespace std;
 */
 
 int semanticCheck(AST* nodo){
-    if (nodo==0)
-        return 0;
+    if (!nodo) return semanticErrors;
+    // debug: qual nó está sendo verificado
+    fprintf(stderr,
+        "[semanticCheck] tipo=%d filhos=%zu\n",
+        nodo->tipo, nodo->filho.size());
+
     switch(nodo->tipo){
-        case AST_SYMBOL:{
+      case AST_SYMBOL:{
             // verifica se o símbolo existe na tabela
             SYMBOL* s = symbolLookup(const_cast<char*>(nodo->simbolo->text.c_str()));
             if (s->type == SYMBOL_INVALID){
@@ -191,20 +195,20 @@ int semanticCheck(AST* nodo){
                 f->paramTypes.clear();
                 function<void(AST*)> collectParam = [&](AST* p){
                     if (!p) return;
-                    if (p->tipo == AST_PARAM_LIST) {
-                        collectParam(p->filho[0]);
-                        collectParam(p->filho[1]);
+                    auto& C = p->filho;
+                    if (p->tipo==AST_PARAM_LIST){
+                      if (C.size()>0) collectParam(C[0]);
+                      if (C.size()>1) collectParam(C[1]);
                     }
-                    else {
-                        // p é AST_SYMBOL de parâmetro: converte o .type em dataType
-                        int dt;
-                        switch(p->simbolo->type){
-                          case SYMBOL_ID_INT:  dt = DATA_INT;  break;
-                          case SYMBOL_ID_REAL: dt = DATA_REAL; break;
-                          case SYMBOL_ID_BYTE: dt = DATA_BOOL; break;  // ou DATA_STRING, conforme sua semântica
-                          default:             dt = DATA_ID;   break;
-                        }
-                        f->paramTypes.push_back(dt);
+                    else if (p->tipo==AST_SYMBOL){
+                      int dt;
+                      switch(p->simbolo->type){
+                        case SYMBOL_ID_INT:  dt = DATA_INT;  break;
+                        case SYMBOL_ID_REAL: dt = DATA_REAL; break;
+                        case SYMBOL_ID_BYTE: dt = DATA_BOOL; break;  // ou DATA_STRING, conforme sua semântica
+                        default:             dt = DATA_ID;   break;
+                      }
+                      f->paramTypes.push_back(dt);
                     }
                 };
                 collectParam(nodo->filho[1]);
@@ -223,18 +227,21 @@ int semanticCheck(AST* nodo){
             }
             // varre a lista de argumentos (filho[1]) e coleta tipos
             vector<int> args;
-            function<void(AST*)> collectArg = [&](AST* p){
+            if (nodo->filho.size()>1 && nodo->filho[1]){
+              function<void(AST*)> collectArg = [&](AST* p){
                 if (!p) return;
-                if (p->tipo == AST_EXPR_LIST) {
-                    collectArg(p->filho[0]);
-                    collectArg(p->filho[1]);
+                auto& C = p->filho;
+                if (p->tipo==AST_EXPR_LIST){
+                  if (C.size()>0) collectArg(C[0]);
+                  if (C.size()>1) collectArg(C[1]);
                 }
                 else {
-                    // para qualquer AST de argumento, extrai seu dataType
-                    args.push_back(getDataType(p));
+                  // nunca acessar p->simbolo sem garantir que ele existe:
+                  args.push_back(getDataType(p));
                 }
-            };
-            collectArg(nodo->filho[1]);
+              };
+              collectArg(nodo->filho[1]);
+            }
 
             // checa número de args
             if (args.size() != f->paramTypes.size()) {
@@ -287,29 +294,43 @@ int semanticCheck(AST* nodo){
             }
             break;
         }
-        case AST_CMD_VEC_ASSIGN:{
-            // filho[0] é AST_VEC, cujo filho[0] é o AST_SYMBOL do vetor
-            AST* vec = nodo->filho[0];
-            SYMBOL* s = vec->filho[0]->simbolo;
-            int R = getDataType(nodo->filho[1]);
-            if (s->dataType == DATA_ID){
-                fprintf(stderr,
-                    "Erro semântico: vetor %s não declarado na atribuição\n",
-                    s->text.c_str());
-                semanticErrors++;
+        case AST_CMD_VEC_ASSIGN: {
+            if (nodo->filho.size() != 2) {
+              fprintf(stderr,
+                "Internal error: AST_CMD_VEC_ASSIGN com %zu filhos\n",
+                 nodo->filho.size());
+              break;
             }
-            else if (s->dataType != R){
-                fprintf(stderr,
-                    "Erro semântico: vetor %s não é do tipo esperado\n",
-                    s->text.c_str());
-                semanticErrors++;
+            AST* vecNode = nodo->filho[0];
+            AST* rhs     = nodo->filho[1];
+            // AST_VEC tem dois filhos: [0]=símbolo do vetor, [1]=índice
+            if (vecNode->tipo != AST_VEC || vecNode->filho.size() < 2) {
+              fprintf(stderr, "Internal error: CMD_VEC_ASSIGN sem AST_VEC correto\n");
+              break;
+            }
+            SYMBOL* s = vecNode->filho[0]->simbolo;
+            int R = getDataType(rhs);
+            if (s->dataType == DATA_ID) {
+              fprintf(stderr,
+                "Erro semântico: vetor %s não declarado na atribuição\n",
+                s->text.c_str());
+              semanticErrors++;
+            }
+            else if (s->dataType != R) {
+              fprintf(stderr,
+                "Erro semântico: vetor %s não é do tipo esperado\n",
+                s->text.c_str());
+              semanticErrors++;
             }
             break;
         }
+        default:
+            break;
     }
 
-    for (uint32_t i=0; i<nodo->filho.size(); i++){
-        semanticCheck(nodo->filho[i]);
+    // recursão segura: só itera até filho.size()
+    for (size_t i = 0; i < nodo->filho.size(); i++){
+      if (nodo->filho[i]) semanticCheck(nodo->filho[i]);
     }
     return semanticErrors;
 }
@@ -317,37 +338,43 @@ int semanticCheck(AST* nodo){
 // pega o dataType de qualquer sub-árvore de expressão
 int getDataType(AST* expr){
     if (!expr) return DATA_ID;
+    // pra debugging
+    fprintf(stderr,
+        "[getDataType] tipo=%d filhos=%zu\n",
+        expr->tipo,
+        expr->filho.size());
+
     switch(expr->tipo){
-        case AST_SYMBOL:
-            return expr->simbolo->dataType;
-        case AST_VEC:
-            // filho[0] é AST_SYMBOL do vetor
-            return expr->filho[0]->simbolo->dataType;
-        // para operações binárias, exige que os dois lados sejam do mesmo tipo (processa todos no mesmo caso)
-        case AST_ADD: case AST_SUB:
-        case AST_MUL: case AST_DIV:
-        case AST_LESS: case AST_LEQ:
-        case AST_GREATER: case AST_GEQ:
-        case AST_EQUAL: case AST_NEQUAL:
-        case AST_AND: case AST_OR:
-            {
-            int L = getDataType(expr->filho[0]);
-            int R = getDataType(expr->filho[1]);
-            return (L==R ? L : DATA_ID);
-            }
-        case AST_NOT:
-            return getDataType(expr->filho[0]);
-        case AST_FUNCALL: {
-            // devolve o dataType de retorno da função
-            SYMBOL* fn = expr->filho[0]->simbolo;
-            switch(fn->type){
-              case SYMBOL_ID_INT:  return DATA_INT;
-              case SYMBOL_ID_REAL: return DATA_REAL;
-              case SYMBOL_ID_BYTE: return DATA_BOOL;  // ou DATA_STRING
-              default:             return DATA_ID;
-            }
+      case AST_SYMBOL:
+        return expr->simbolo ? expr->simbolo->dataType : DATA_ID;
+      case AST_VEC:
+        if (expr->filho.size()>0 && expr->filho[0]->simbolo)
+          return expr->filho[0]->simbolo->dataType;
+        return DATA_ID;
+      case AST_ADD: case AST_SUB:
+      case AST_MUL: case AST_DIV:
+      case AST_LESS: case AST_LEQ:
+      case AST_GREATER: case AST_GEQ:
+      case AST_EQUAL: case AST_NEQUAL:
+      case AST_AND: case AST_OR: {
+        int L = (expr->filho.size()>0) ? getDataType(expr->filho[0]) : DATA_ID;
+        int R = (expr->filho.size()>1) ? getDataType(expr->filho[1]) : DATA_ID;
+        return (L==R ? L : DATA_ID);
+      }
+      case AST_NOT:
+        return (expr->filho.size()>0)
+             ? getDataType(expr->filho[0])
+             : DATA_ID;
+      case AST_FUNCALL:
+        if (expr->filho.size()>0 && expr->filho[0]->simbolo){
+          switch(expr->filho[0]->simbolo->type){
+            case SYMBOL_ID_INT:  return DATA_INT;
+            case SYMBOL_ID_REAL: return DATA_REAL;
+            default:             return DATA_ID;
+          }
         }
-         default:
-             return DATA_ID;
-     }
- }
+        return DATA_ID;
+      default:
+        return DATA_ID;
+    }
+}
