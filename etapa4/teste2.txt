@@ -76,7 +76,7 @@ int main ()
 
   }
 
-int incm (int p, int n )
+int incn (int p, int n )
 {
   return p + n;
 }

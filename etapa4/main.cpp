@@ -36,7 +36,7 @@ int main(int argc, char** argv){
     symbolPrintTable();
     if (errosSemanticos > 0) {
         fprintf(stderr, "Found %d semantic errors\n", errosSemanticos);
-        exit(3);
+        exit(4);
     }
     exit(0);
 }

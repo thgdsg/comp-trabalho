@@ -252,7 +252,7 @@ cmd: TK_IDENTIFIER '=' expr ';'
     }
     | KW_PRINT printl ';' { $$ = new AST(AST_CMD_PRINT, { $2 }); }
     | KW_RETURN expr ';' { $$ = new AST(AST_CMD_RETURN, { $2 }); }
-    | ';' { $$ = nullptr; /* ou new AST(AST_EMPTY) se quiser nó vazio */ }
+    | ';' { $$ = nullptr; }
     | cmdblock {$$ = $1;}
     ;
 

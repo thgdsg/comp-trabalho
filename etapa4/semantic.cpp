@@ -8,7 +8,7 @@
 #include <functional>
 
 int semanticErrors = 0;
-
+extern string ASTTypeNames[];
 using namespace std;
 
 /*
@@ -31,9 +31,7 @@ using namespace std;
 int semanticCheck(AST* nodo){
     if (!nodo) return semanticErrors;
     // debug: qual nó está sendo verificado
-    fprintf(stderr,
-        "[semanticCheck] tipo=%d filhos=%zu\n",
-        nodo->tipo, nodo->filho.size());
+    //fprintf(stderr,"[semanticCheck] tipo=%d filhos=%zu\n",nodo->tipo, nodo->filho.size());
 
     switch(nodo->tipo){
       case AST_SYMBOL:{
@@ -190,28 +188,71 @@ int semanticCheck(AST* nodo){
             else if (f->type == SYMBOL_ID_BYTE) {
                 f = symbolInsert(SYMBOL_ID_BYTE, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
             }
-            // agora coleto parâmetros, mapeando o type → dataType real
+            // agora coleta parâmetros, mapeando o type -> dataType
             if (nodo->filho.size() >= 2) {
                 f->paramTypes.clear();
+                // percorre a lista de parâmetros e rein­sere cada símbolo
                 function<void(AST*)> collectParam = [&](AST* p){
                     if (!p) return;
                     auto& C = p->filho;
-                    if (p->tipo==AST_PARAM_LIST){
-                      if (C.size()>0) collectParam(C[0]);
-                      if (C.size()>1) collectParam(C[1]);
+                    if (p->tipo == AST_PARAM_LIST) {
+                        if (C.size()>0) collectParam(C[0]);
+                        if (C.size()>1) collectParam(C[1]);
                     }
-                    else if (p->tipo==AST_SYMBOL){
-                      int dt;
-                      switch(p->simbolo->type){
-                        case SYMBOL_ID_INT:  dt = DATA_INT;  break;
-                        case SYMBOL_ID_REAL: dt = DATA_REAL; break;
-                        case SYMBOL_ID_BYTE: dt = DATA_BOOL; break;  // ou DATA_STRING, conforme sua semântica
-                        default:             dt = DATA_ID;   break;
-                      }
-                      f->paramTypes.push_back(dt);
+                    else if (p->tipo == AST_SYMBOL) {
+                        // pega o tipo ID (SYMBOL_ID_*) e o texto
+                        int  symType = p->simbolo->type;
+                        auto name   = p->simbolo->text.c_str();
+                        // determina o dataType correspondente
+                        int dt;
+                        switch(symType) {
+                          case SYMBOL_ID_INT:  dt = DATA_INT;  break;
+                          case SYMBOL_ID_REAL: dt = DATA_REAL; break;
+                          case SYMBOL_ID_BYTE: dt = DATA_BOOL; break;
+                          default:             dt = DATA_ID;   break;
+                        }
+                        // reinsere para atualizar dataType
+                        SYMBOL* news = symbolInsert(symType, dt, const_cast<char*>(name));
+                        p->simbolo = news;
+                        f->paramTypes.push_back(dt);
                     }
                 };
                 collectParam(nodo->filho[1]);
+            }
+
+            // verifica pelo comando return dentro do corpo
+            AST* body = (nodo->filho.size() >= 3 ? nodo->filho[2] : nullptr);
+            bool foundReturn = false;
+            function<void(AST*)> checkRet = [&](AST* n){
+                if (!n) return;
+                if (n->tipo == AST_CMD_RETURN) {
+                    foundReturn = true;
+                    AST* retExpr = (n->filho.size()>0 ? n->filho[0] : nullptr);
+                    if (!retExpr) {
+                        fprintf(stderr,
+                            "Erro semântico: função %s não retorna expressão\n",
+                            f->text.c_str());
+                        semanticErrors++;
+                    } else {
+                        int actual   = getDataType(retExpr);
+                        int expected = (f->type==SYMBOL_ID_INT  ? DATA_INT  :
+                                        f->type==SYMBOL_ID_REAL ? DATA_REAL :
+                                        /*byte/else*/           DATA_INT);
+                        if (actual != expected) {
+                            fprintf(stderr,
+                                "Erro semântico: função %s retorna tipo %d, esperado %d\n",
+                                f->text.c_str(), actual, expected);
+                            semanticErrors++;
+                        }
+                    }
+                }
+                for (AST* c : n->filho) checkRet(c);
+            };
+            checkRet(body);
+            if (!foundReturn) {
+                fprintf(stderr,
+                    "Warning: função %s não possui comando return\n",
+                    f->text.c_str());
             }
             break;
         }
@@ -324,11 +365,87 @@ int semanticCheck(AST* nodo){
             }
             break;
         }
+        case AST_VEC:{
+            // filho[0] = AST_SYMBOL do vetor
+            SYMBOL* s = nodo->filho[0]->simbolo;
+            if (s->dataType != DATA_VECTOR) {
+                fprintf(stderr,
+                    "Erro semântico: '%s' não é vetor\n",
+                    s->text.c_str());
+                semanticErrors++;
+            }
+            // filho[1] = índice do vetor
+            // se não for inteiro, erro
+            if (nodo->filho.size() > 1) {
+                int indexType = getDataType(nodo->filho[1]);
+                if (indexType != DATA_INT) {
+                    fprintf(stderr, "Erro semântico: índice de vetor '%s' não é inteiro\n", s->text.c_str());
+                    semanticErrors++;
+                }
+            }
+            break;
+        }
+        case AST_CMD_IF:{
+            // filho[0] = expressão de teste
+            // filho[1] = bloco de comandos
+            if (nodo->filho.size() != 2) {
+                fprintf(stderr, "Internal error: AST_CMD_IF com %zu filhos\n", nodo->filho.size());
+                break;
+            }
+            int testType = getDataType(nodo->filho[0]);
+            if (testType != DATA_BOOL) {
+                fprintf(stderr, "Erro semântico: teste de if não é booleano\n");
+                semanticErrors++;
+            }
+            break;
+        }
+        case AST_CMD_IFELSE:{
+            // filho[0] = expressão de teste
+            // filho[1] = bloco de comandos
+            // filho[2] = bloco de comandos else
+            if (nodo->filho.size() != 3) {
+                fprintf(stderr, "Internal error: AST_CMD_IF com %zu filhos\n", nodo->filho.size());
+                break;
+            }
+            int testType = getDataType(nodo->filho[0]);
+            if (testType != DATA_BOOL) {
+                fprintf(stderr, "Erro semântico: teste de if não é booleano\n");
+                semanticErrors++;
+            }
+            break;
+        }
+        case AST_CMD_WHILE:{
+            // filho[0] = expressão de teste
+            // filho[1] = bloco de comandos
+            if (nodo->filho.size() != 2) {
+                fprintf(stderr, "Internal error: AST_CMD_WHILE com %zu filhos\n", nodo->filho.size());
+                break;
+            }
+            int testType = getDataType(nodo->filho[0]);
+            if (testType != DATA_BOOL) {
+                fprintf(stderr, "Erro semântico: teste de while não é booleano\n");
+                semanticErrors++;
+            }
+            break;
+        }
+        case AST_CMD_DOWHILE:{
+            // filho[0] = bloco de comandos
+            // filho[1] = expressão de teste
+            if (nodo->filho.size() != 2) {
+                fprintf(stderr, "Internal error: AST_CMD_DOWHILE com %zu filhos\n", nodo->filho.size());
+                break;
+            }
+            int testType = getDataType(nodo->filho[1]);
+            if (testType != DATA_BOOL) {
+                fprintf(stderr, "Erro semântico: teste de do-while não é booleano\n");
+                semanticErrors++;
+            }
+            break;
+        }
         default:
             break;
     }
-
-    // recursão segura: só itera até filho.size()
+    
     for (size_t i = 0; i < nodo->filho.size(); i++){
       if (nodo->filho[i]) semanticCheck(nodo->filho[i]);
     }
@@ -339,32 +456,65 @@ int semanticCheck(AST* nodo){
 int getDataType(AST* expr){
     if (!expr) return DATA_ID;
     // pra debugging
-    fprintf(stderr,
-        "[getDataType] tipo=%d filhos=%zu\n",
-        expr->tipo,
-        expr->filho.size());
+    //fprintf(stderr,"[getDataType] tipo=%s filhos=%zu\n",ASTTypeNames[expr->tipo].c_str(),expr->filho.size());
 
     switch(expr->tipo){
       case AST_SYMBOL:
         return expr->simbolo ? expr->simbolo->dataType : DATA_ID;
       case AST_VEC:
-        if (expr->filho.size()>0 && expr->filho[0]->simbolo)
-          return expr->filho[0]->simbolo->dataType;
+        if (expr->filho.size()>0 && expr->filho[0]->simbolo){
+          if (expr->filho[0]->simbolo->type == SYMBOL_ID_INT)
+            return DATA_INT;
+          if (expr->filho[0]->simbolo->type == SYMBOL_ID_REAL)
+            return DATA_REAL;
+          if (expr->filho[0]->simbolo->type == SYMBOL_ID_BYTE)
+            return DATA_BOOL;
+        }
         return DATA_ID;
+
       case AST_ADD: case AST_SUB:
-      case AST_MUL: case AST_DIV:
-      case AST_LESS: case AST_LEQ:
-      case AST_GREATER: case AST_GEQ:
-      case AST_EQUAL: case AST_NEQUAL:
-      case AST_AND: case AST_OR: {
-        int L = (expr->filho.size()>0) ? getDataType(expr->filho[0]) : DATA_ID;
-        int R = (expr->filho.size()>1) ? getDataType(expr->filho[1]) : DATA_ID;
-        return (L==R ? L : DATA_ID);
+      case AST_MUL: case AST_DIV:{
+      int L = getDataType(expr->filho[0]);
+      int R = getDataType(expr->filho[1]);
+      // só soma/sub/mul/div int e real
+      if ( (L==DATA_INT||L==DATA_REAL)
+        && (L==R) )
+        return L;
+      return DATA_ID;
       }
-      case AST_NOT:
-        return (expr->filho.size()>0)
-             ? getDataType(expr->filho[0])
-             : DATA_ID;
+
+      case AST_LESS: case AST_LEQ:
+      case AST_GREATER: case AST_GEQ: {
+      int L = getDataType(expr->filho[0]);
+      int R = getDataType(expr->filho[1]);
+      // só compara int ou real
+      if ((L==DATA_INT||L==DATA_REAL) && L==R)
+        return DATA_BOOL;
+      return DATA_ID;
+      }
+
+      case AST_EQUAL: case AST_NEQUAL: {
+      int L = getDataType(expr->filho[0]);
+      int R = getDataType(expr->filho[1]);
+      // compara qualquer tipo igual (incluindo char/string)
+      if (L==R && L!=DATA_ID)
+        return DATA_BOOL;
+      return DATA_ID;
+      }
+
+      case AST_AND: case AST_OR: {
+        int L = getDataType(expr->filho[0]);
+        int R = getDataType(expr->filho[1]);
+        if (L==DATA_BOOL && R==DATA_BOOL)
+          return DATA_BOOL;
+        return DATA_ID;
+      }
+
+      case AST_NOT: {
+        int T = getDataType(expr->filho[0]);
+        return (T==DATA_BOOL) ? DATA_BOOL : DATA_ID;
+      }
+
       case AST_FUNCALL:
         if (expr->filho.size()>0 && expr->filho[0]->simbolo){
           switch(expr->filho[0]->simbolo->type){
@@ -374,6 +524,7 @@ int getDataType(AST* expr){
           }
         }
         return DATA_ID;
+      
       default:
         return DATA_ID;
     }
