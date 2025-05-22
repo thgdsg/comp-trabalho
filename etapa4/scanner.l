@@ -31,8 +31,8 @@
 %x COMMENT
 
 %%
-[0-9]+[/][0-9]+ {yylval.symbol = symbolInsert(SYMBOL_REAL,reverseRealNumber(yytext)); return LIT_REAL;}
-[0-9]+ {yylval.symbol = symbolInsert(SYMBOL_INT,reverseInt(yytext)); return LIT_INT;}
+[0-9]+[/][0-9]+ {yylval.symbol = symbolInsert(SYMBOL_REAL,DATA_REAL,reverseRealNumber(yytext)); return LIT_REAL;}
+[0-9]+ {yylval.symbol = symbolInsert(SYMBOL_INT,DATA_INT,reverseInt(yytext)); return LIT_INT;}
 "byte" {return KW_BYTE;}
 "int" {return KW_INT;}
 "real" {return KW_REAL;}
@@ -44,8 +44,8 @@
 "print" {return KW_PRINT;}
 "return" {return KW_RETURN;}
 "/--" {BEGIN(COMMENT);}
-[']([^'\\]|\\.)['] {yylval.symbol = symbolInsert(SYMBOL_CHAR,yytext); return LIT_CHAR;}
-\"(\\.|[^\\\"\n])*\" {yylval.symbol = symbolInsert(SYMBOL_STRING,yytext); addNewLines(yytext,&line_count); return LIT_STRING;}
+[']([^'\\]|\\.)['] {yylval.symbol = symbolInsert(SYMBOL_CHAR,DATA_CHAR,yytext); return LIT_CHAR;}
+\"(\\.|[^\\\"\n])*\" {yylval.symbol = symbolInsert(SYMBOL_STRING,DATA_STRING,yytext); addNewLines(yytext,&line_count); return LIT_STRING;}
 "//"[^\n]* {}
 [A-Za-z_]+[A-Za-z0-9_]* { yylval.sval = strdup(yytext); return TK_IDENTIFIER; }
 "<=" {return OPERATOR_LE;}

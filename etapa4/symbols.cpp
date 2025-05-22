@@ -12,9 +12,10 @@ using namespace std;
 // tabela de Símbolos baseada na implementação feita em aula pelo professor
 map<string,SYMBOL*> SymbolTable;
 vector<string> symbolName = { "SYMBOL_INVALID", "SYMBOL_ID_INT", "SYMBOL_ID_BYTE", "SYMBOL_ID_REAL", "SYMBOL_INT", "SYMBOL_CHAR", "SYMBOL_REAL", "SYMBOL_STRING"};
+vector<string> dataType = { "SYMBOL_ID", "SYMBOL_INT", "SYMBOL_CHAR", "SYMBOL_REAL", "SYMBOL_STRING", "SYMBOL_FUNCTION", "SYMBOL_VECTOR"};
 
 // função para inserir símbolos na tabela, baseada na feita em aula
-SYMBOL *symbolInsert(int type, char* text){
+SYMBOL *symbolInsert(int type, int dataType, char* text){
     // converte texto para chave
     std::string key(text);
     // busca na tabela
@@ -25,13 +26,16 @@ SYMBOL *symbolInsert(int type, char* text){
             delete it->second;
             SymbolTable.erase(it);
         }
-        // se achar e tipo não for inválido, retorna o símbolo existente
         else {
+            // se já existe e datatype ainda não foi atribuído
+            if (it->second->dataType == DATA_ID && dataType != 0) {
+                it->second->dataType = dataType;
+            }
             return it->second;
         }
     }
     // insere novo símbolo
-    SYMBOL *newsymbol = new SYMBOL(type, key);
+    SYMBOL *newsymbol = new SYMBOL(type, dataType, key);
     SymbolTable[key] = newsymbol;
     return newsymbol;
 }
@@ -41,7 +45,7 @@ SYMBOL* symbolLookup(char* text) {
     // utiliza o find() do map pra buscar o símbolo
     auto it = SymbolTable.find(string(text));
     if (it == SymbolTable.end()) {
-        SYMBOL* a = symbolInsert(SYMBOL_INVALID, text);
+        SYMBOL* a = symbolInsert(SYMBOL_INVALID, 0, text);
         return a;
     }
     return it->second;

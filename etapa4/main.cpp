@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "symbols.hpp"
 #include "ast.hpp"
-
+#include "semantic.hpp"
 extern FILE* yyin;
 extern int isRunning();
 extern int getLineNumber();
@@ -19,10 +19,11 @@ extern int line_count;
 int main(int argc, char** argv){
     if (argc<3){
         printf("Usage: %s <input_file> <output_file>\n", argv[0]);
+        exit(1);
     }
     if((yyin=fopen(argv[1], "r"))==0){
         printf("Cannot open file %s\n", argv[1]);
-        return 1;
+        exit(2);
     }
 //    yydebug = 1; // Ativa o modo debug do Bison
     yyparse();
@@ -31,5 +32,10 @@ int main(int argc, char** argv){
     symbolPrintTable();
     // gera o .txt usando o nome passado em argv[2]
     astGenerateToFile(raiz, argv[2]);
+    int errosSemanticos = semanticCheck(raiz);
+    if (errosSemanticos > 0) {
+        fprintf(stderr, "Found %d semantic errors\n", errosSemanticos);
+        exit(3);
+    }
     exit(0);
 }

@@ -11,16 +11,22 @@ enum SymbolType {
     SYMBOL_INVALID, SYMBOL_ID_INT, SYMBOL_ID_BYTE, SYMBOL_ID_REAL, SYMBOL_INT, SYMBOL_CHAR, SYMBOL_REAL, SYMBOL_STRING
 };
 
+// enum para os tipos de dados, baseada na vista em aula
+enum DataType {
+    DATA_ID, DATA_INT, DATA_CHAR, DATA_REAL, DATA_STRING, DATA_FUNCTION, DATA_VECTOR
+};
+
 // estrutura para os tipos de símbolos, baseada na vista em aula
 struct SYMBOL{
     int type;
+    int dataType;
     string text;
     public:
-        SYMBOL(int t, string s): type(t), text(s) {};
+        SYMBOL(int t, int d, string s): type(t), dataType(d), text(s) {};
 };
 
 // declaração de funções
-SYMBOL *symbolInsert(int type, char* text);
+SYMBOL *symbolInsert(int type, int dataType, char* text);
 SYMBOL* symbolLookup(char* text);
 void symbolPrintTable();
 

@@ -12,6 +12,7 @@
 
 extern int semanticErrors;
 
-void semanticCheck(AST* nodo);
+int semanticCheck(AST* nodo);
+void checkUndeclared();
 
 #endif
