@@ -44,7 +44,7 @@
 "print" {return KW_PRINT;}
 "return" {return KW_RETURN;}
 "/--" {BEGIN(COMMENT);}
-[']([^'\\]|\\.)['] {yylval.symbol = symbolInsert(SYMBOL_CHAR,DATA_CHAR,yytext); return LIT_CHAR;}
+[']([^'\\]|\\.)['] {yylval.symbol = symbolInsert(SYMBOL_CHAR,DATA_INT,yytext); return LIT_CHAR;}
 \"(\\.|[^\\\"\n])*\" {yylval.symbol = symbolInsert(SYMBOL_STRING,DATA_STRING,yytext); addNewLines(yytext,&line_count); return LIT_STRING;}
 "//"[^\n]* {}
 [A-Za-z_]+[A-Za-z0-9_]* { yylval.sval = strdup(yytext); return TK_IDENTIFIER; }

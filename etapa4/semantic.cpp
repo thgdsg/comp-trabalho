@@ -37,7 +37,7 @@ int semanticCheck(AST* nodo){
             break;
         }
         case AST_VAR_ATTR:{
-            if (nodo->filho[0]->simbolo->type != DATA_ID){
+            if (nodo->filho[0]->simbolo->dataType != DATA_ID){
                     fprintf(stderr, "Erro semântico: variável %s já declarada\n", nodo->filho[0]->simbolo->text.c_str());
                     semanticErrors++;
                 }
@@ -48,7 +48,7 @@ int semanticCheck(AST* nodo){
                 nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_REAL, DATA_REAL, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
             }
             else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_BYTE){
-                nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_BYTE, DATA_CHAR, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+                nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_BYTE, DATA_INT, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
             }
 
             if (nodo->filho[0]->simbolo->type == SYMBOL_ID_INT){
@@ -64,13 +64,34 @@ int semanticCheck(AST* nodo){
                 }
             }
             else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_BYTE){
-                if (nodo->filho[1]->simbolo->type != SYMBOL_CHAR){
+                if (nodo->filho[1]->simbolo->type != SYMBOL_INT){
                     fprintf(stderr, "Erro semântico: variável %s não é do tipo byte\n", nodo->filho[0]->simbolo->text.c_str());
                     semanticErrors++;
                 }
             }
+            break;
         }
         case AST_VEC_ATTR:{
+            if (nodo->filho[0]->simbolo->dataType != DATA_ID){
+                    fprintf(stderr, "Erro semântico: variável %s já declarada\n", nodo->filho[0]->simbolo->text.c_str());
+                    semanticErrors++;
+                }
+            else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_INT){
+                nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_INT, DATA_VECTOR, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+            }
+            else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_REAL){
+                nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_REAL, DATA_VECTOR, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+            }
+            else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_BYTE){
+                nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_BYTE, DATA_VECTOR, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+            }
+            if (nodo->filho[1]->simbolo->dataType != DATA_INT){
+                fprintf(stderr, "Erro semântico: tamanho do vetor %s não reduz a um tipo compatível com inteiro\n", nodo->filho[0]->simbolo->text.c_str());
+                semanticErrors++;
+            }
+            if (nodo->filho.size() == 3){
+                // TODO
+            }
             break;
         }
     }
@@ -79,8 +100,4 @@ int semanticCheck(AST* nodo){
         semanticCheck(nodo->filho[i]);
     }
     return semanticErrors;
-}
-
-void checkUndeclared(){
-
 }

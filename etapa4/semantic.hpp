@@ -8,6 +8,8 @@
 #include "symbols.hpp"
 #include <stdio.h>
 #include <cstring>
+#include <string>
+#include <functional>
 #include <stdlib.h>
 
 extern int semanticErrors;

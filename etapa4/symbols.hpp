@@ -13,7 +13,7 @@ enum SymbolType {
 
 // enum para os tipos de dados, baseada na vista em aula
 enum DataType {
-    DATA_ID, DATA_INT, DATA_CHAR, DATA_REAL, DATA_STRING, DATA_FUNCTION, DATA_VECTOR
+    DATA_ID, DATA_INT, DATA_REAL, DATA_STRING, DATA_BOOL, DATA_FUNCTION, DATA_VECTOR
 };
 
 // estrutura para os tipos de símbolos, baseada na vista em aula

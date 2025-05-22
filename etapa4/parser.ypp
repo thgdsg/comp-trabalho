@@ -109,53 +109,41 @@ vardec: KW_INT TK_IDENTIFIER '=' lit ';'
     ;
 
 // declaração de vetores
-vecdec: KW_INT TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' 
+vecdec: KW_INT TK_IDENTIFIER '[' lit ']' '=' listvar ';' 
     { 
     SYMBOL* id = symbolInsert(SYMBOL_ID_INT, DATA_ID, $2); free($2);
-    SYMBOL* lit = $4;
     AST* n_id = new AST(AST_SYMBOL, {}, id);
-    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
-    $$ = new AST(AST_VEC_ATTR, { n_id, n_lit, $7 });
+    $$ = new AST(AST_VEC_ATTR, { n_id, $4, $7 });
     }
-    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';' 
+    | KW_REAL TK_IDENTIFIER '[' lit ']' '=' listvar ';' 
     { 
     SYMBOL* id = symbolInsert(SYMBOL_ID_REAL, DATA_ID, $2); free($2);
-    SYMBOL* lit = $4;
     AST* n_id = new AST(AST_SYMBOL, {}, id);
-    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
-    $$ = new AST(AST_VEC_ATTR, { n_id, n_lit, $7 });
+    $$ = new AST(AST_VEC_ATTR, { n_id, $4, $7 });
     }
-    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' '=' listvar ';'
+    | KW_BYTE TK_IDENTIFIER '[' lit ']' '=' listvar ';'
     { 
     SYMBOL* id = symbolInsert(SYMBOL_ID_BYTE, DATA_ID, $2); free($2);
-    SYMBOL* lit = $4;
     AST* n_id = new AST(AST_SYMBOL, {}, id);
-    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
-    $$ = new AST(AST_VEC_ATTR, { n_id, n_lit, $7 });
+    $$ = new AST(AST_VEC_ATTR, { n_id, $4, $7 });
     }
-    | KW_INT TK_IDENTIFIER '[' LIT_INT ']' ';' 
+    | KW_INT TK_IDENTIFIER '[' lit ']' ';' 
     { 
     SYMBOL* id = symbolInsert(SYMBOL_ID_INT, DATA_ID, $2); free($2);
-    SYMBOL* lit = $4;
     AST* n_id = new AST(AST_SYMBOL, {}, id);
-    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
-    $$ = new AST(AST_VEC_ATTR, { n_id, n_lit });
+    $$ = new AST(AST_VEC_ATTR, { n_id, $4 });
     }
-    | KW_REAL TK_IDENTIFIER '[' LIT_INT ']' ';' 
+    | KW_REAL TK_IDENTIFIER '[' lit ']' ';' 
     { 
     SYMBOL* id = symbolInsert(SYMBOL_ID_REAL, DATA_ID, $2); free($2);
-    SYMBOL* lit = $4;
     AST* n_id = new AST(AST_SYMBOL, {}, id);
-    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
-    $$ = new AST(AST_VEC_ATTR, { n_id, n_lit });
+    $$ = new AST(AST_VEC_ATTR, { n_id, $4 });
     }
-    | KW_BYTE TK_IDENTIFIER '[' LIT_INT ']' ';' 
+    | KW_BYTE TK_IDENTIFIER '[' lit ']' ';' 
     { 
     SYMBOL* id = symbolInsert(SYMBOL_ID_BYTE, DATA_ID, $2); free($2);
-    SYMBOL* lit = $4;
     AST* n_id = new AST(AST_SYMBOL, {}, id);
-    AST* n_lit = new AST(AST_SYMBOL, {}, lit);
-    $$ = new AST(AST_VEC_ATTR, { n_id, n_lit });
+    $$ = new AST(AST_VEC_ATTR, { n_id, $4 });
     }
     ;
 

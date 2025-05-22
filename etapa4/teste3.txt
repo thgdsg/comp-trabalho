@@ -1,5 +1,4 @@
 int x = 1;
-int x = 2;
+int y = 2;
 
-byte ppp(int ab,real ba, byte ca){
-}
+int z['a'] = 1,2;

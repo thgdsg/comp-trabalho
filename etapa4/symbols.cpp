@@ -12,7 +12,7 @@ using namespace std;
 // tabela de Símbolos baseada na implementação feita em aula pelo professor
 map<string,SYMBOL*> SymbolTable;
 vector<string> symbolName = { "SYMBOL_INVALID", "SYMBOL_ID_INT", "SYMBOL_ID_BYTE", "SYMBOL_ID_REAL", "SYMBOL_INT", "SYMBOL_CHAR", "SYMBOL_REAL", "SYMBOL_STRING"};
-vector<string> dataType = { "SYMBOL_ID", "SYMBOL_INT", "SYMBOL_CHAR", "SYMBOL_REAL", "SYMBOL_STRING", "SYMBOL_FUNCTION", "SYMBOL_VECTOR"};
+vector<string> dataType = { "DATA_ID", "DATA_INT", "DATA_REAL", "DATA_STRING", "DATA_BOOL", "DATA_FUNCTION", "DATA_VECTOR"};
 
 // função para inserir símbolos na tabela, baseada na feita em aula
 SYMBOL *symbolInsert(int type, int dataType, char* text){
