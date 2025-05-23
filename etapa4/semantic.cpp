@@ -509,8 +509,8 @@ int getDataType(AST* expr){
     case AST_EQUAL: case AST_NEQUAL: {
     int L = getDataType(expr->filho[0]);
     int R = getDataType(expr->filho[1]);
-    // compara qualquer tipo igual (incluindo char/string)
-    if (L==R && L!=DATA_ID)
+    // compara qualquer tipo exceto string
+    if (L==R && (L==DATA_INT||L==DATA_REAL||L==DATA_BOOL))
       return DATA_BOOL;
     return DATA_ID;
     }
