@@ -1,14 +1,26 @@
 int x = 1;
 int y = 2;
 int a = 3;
-byte b = 5;
+byte b = 'J';
 int z[3] = 1,'b',12;
+int number = 'A';
+
+real matrix[033];
 
 int func(int h, int j){
     x = 9 + 5 / 2;
     a = 10;
     b = z[2];
+    print 
+    z['l'] "banana";
+    read a;
 }
+
+/--
+Este eh um comentario 
+de multiplas 
+linhas
+--/
 
 int main(){
     y = func(10,2);
@@ -18,18 +30,18 @@ int main(){
         a = 3;
         b = 5;
     }
-    while (x < 10);
-
-    while (x < 10)
-    do{
-        x = 1;
-        y = 2;
-        a = 3;
-        b = 5;
-    }
+    while y < 2 | x < 2 + 5 * 3;
+    
+    while (x != 02) do
+        {
+        x = x + 3;
+        print "." x y "qwaerfwearf";
+        matrix[1] = 5/3;
+        }
+    a = 3 / 2 * 2 + 3;
 }
 
 int incm (int p, int n )
 {
-  return 'a';
+    return 'a';
 }
