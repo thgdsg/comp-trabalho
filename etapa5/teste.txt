@@ -1,0 +1,26 @@
+byte x = 'p';
+int y = 'b';
+real z = 100;
+int a = 's';
+
+int p = 90/25;
+int b = 123123123;
+int c = 4444;
+
+byte main(int u, byte w){
+    h = 'p';
+    j = 'b';
+    k = 100;
+    l = 's';
+
+    m = 90/25;
+    n = 123123123;
+    o = 4444;
+
+    if (x == 0){
+        x = 1;
+    }
+    else{
+        x = a - b / c;
+    }
+}
