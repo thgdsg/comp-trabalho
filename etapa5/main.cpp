@@ -6,6 +6,7 @@
 #include "symbols.hpp"
 #include "ast.hpp"
 #include "semantic.hpp"
+#include "tac.hpp"
 extern FILE* yyin;
 extern int isRunning();
 extern int getLineNumber();
@@ -29,14 +30,17 @@ int main(int argc, char** argv){
     yyparse();
     fprintf(stderr,"Parsing finished\n");
     fprintf(stderr,"File has %d lines\n", getLineNumber());
-    symbolPrintTable();
+    //symbolPrintTable();
+
     // gera o .txt usando o nome passado em argv[2]
     astGenerateToFile(raiz, argv[2]);
     int errosSemanticos = semanticCheck(raiz);
-    symbolPrintTable();
+    
+    //symbolPrintTable();
     if (errosSemanticos > 0) {
         fprintf(stderr, "Found %d semantic errors\n", errosSemanticos);
         exit(4);
     }
+    tacPrintBackwards(GenerateCode(raiz));
     exit(0);
 }

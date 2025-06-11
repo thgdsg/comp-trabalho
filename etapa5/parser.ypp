@@ -7,6 +7,7 @@
 #include <string>
 #include "symbols.hpp"
 #include "ast.hpp"
+#include "tac.hpp"
 #include <cstring>
 using namespace std;
 int yylex();
@@ -61,7 +62,7 @@ int getLineNumber();
 program:
     ldef
     { 
-      raiz = $1;
+        raiz = $1;
     }
     ;
 // o programa é uma sequência de definições

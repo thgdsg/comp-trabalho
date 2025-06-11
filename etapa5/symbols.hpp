@@ -32,5 +32,5 @@ struct SYMBOL{
 SYMBOL *symbolInsert(int type, int dataType, char* text);
 SYMBOL* symbolLookup(char* text);
 void symbolPrintTable();
-
+SYMBOL* symbolMakeTemp(void);
 #endif

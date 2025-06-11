@@ -54,14 +54,14 @@ SYMBOL* symbolLookup(char* text) {
 // função pra imprimir símbolos da tabela, baseada na feita em aula
 void symbolPrintTable(){
      for (auto s : SymbolTable){
-         int t  = s.second->type;
-         int dt = s.second->dataType;
-         // nome do tipo léxico
-         const auto tipo = (t >= 0 && static_cast<size_t>(t) < symbolName.size())
-             ? symbolName[t] : "ERRO/DEBUG";
-         // nome do dataType
-         const auto tipoDado = (dt >= 0 && static_cast<size_t>(dt) < dataType.size())
-             ? dataType[dt] : "ERRO/DEBUG";
+        int t  = s.second->type;
+        int dt = s.second->dataType;
+        // nome do tipo léxico
+        const auto tipo = (t >= 0 && static_cast<size_t>(t) < symbolName.size())
+            ? symbolName[t] : "ERRO/DEBUG";
+        // nome do dataType
+        const auto tipoDado = (dt >= 0 && static_cast<size_t>(dt) < dataType.size())
+            ? dataType[dt] : "ERRO/DEBUG";
  
         // começa a imprimir
         printf("Symbol[%s, %s, %s", tipo.c_str(), tipoDado.c_str(), s.second->text.c_str());
@@ -80,5 +80,13 @@ void symbolPrintTable(){
         }
         // fecha colchete e pula linha
         printf("]\n");
-     }
- }
+    }
+}
+
+SYMBOL* symbolMakeTemp(void) {
+    static int serialNumber = 0;
+    static char buffer[20] = "";
+    snprintf(buffer, sizeof(buffer), "temp%d", serialNumber++);
+    SYMBOL* tempSymbol = symbolInsert(SYMBOL_INVALID, DATA_ID, buffer);
+    return tempSymbol;
+}
