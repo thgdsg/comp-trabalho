@@ -50,6 +50,6 @@ void tacPrintBackwards(TAC* tac);
 TAC* tacJoin(TAC* a, TAC* b);
 TAC* GenerateCode(AST* node);
 TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2);
-
+TAC* makeBinaryOp(int type, TAC* code[]);
 
 #endif

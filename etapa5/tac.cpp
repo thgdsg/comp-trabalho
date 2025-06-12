@@ -6,6 +6,24 @@
 
 using namespace std;
 
+string TACTypes[] = {
+    "TAC_UNKNOWN",
+    "TAC_SYMBOL",
+    "TAC_DEF",
+    "TAC_VAR_ATTR", "TAC_VEC_ATTR", "TAC_FUN_ATTR",
+    "TAC_VAR_LIST", "TAC_PARAM_LIST", "TAC_EXPR_LIST", "TAC_PRINT_LIST", "TAC_CMD_LIST",
+    "TAC_CMD_IF", "TAC_CMD_IFELSE", "TAC_CMD_WHILE", "TAC_CMD_DOWHILE",
+    "TAC_CMD_ASSIGN", "TAC_CMD_VEC_ASSIGN", "TAC_CMD_READ", "TAC_CMD_PRINT", "TAC_CMD_RETURN",
+    "TAC_BLOCKCMD",
+    "TAC_VEC", "TAC_FUNCALL",
+    "TAC_ADD", "TAC_SUB", "TAC_MUL", "TAC_DIV",
+    "TAC_LESS", "TAC_LEQ", "TAC_GREATER", "TAC_GEQ",
+    "TAC_EQUAL", "TAC_NEQUAL",
+    "TAC_AND", "TAC_OR",
+    "TAC_NOT",
+    "TAC_LABEL"
+};
+
 TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2){
     TAC* newtac = new TAC(type,res,op1,op2,NULL,NULL);
     return newtac;
@@ -13,8 +31,9 @@ TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2){
 
 void tacPrintSingle(TAC* tac){
     if (!tac) return;
+    if (tac->tipo == TAC_SYMBOL) return;
 
-    fprintf(stderr, "TAC: (%d,%s,%s,%s)\n", tac->tipo, tac->resultado ? tac->resultado->text.c_str() : "null",
+    fprintf(stderr, "TAC: (%s,%s,%s,%s)\n", TACTypes[tac->tipo].c_str(), tac->resultado ? tac->resultado->text.c_str() : "null",
            tac->op1 ? tac->op1->text.c_str() : "null",
            tac->op2 ? tac->op2->text.c_str() : "null");
     
@@ -28,142 +47,142 @@ void tacPrintBackwards(TAC* tac){
     }
 }
 
-TAC* tacJoin(TAC* a, TAC* b){
-    if (!a) return b;
-    if (!b) return a;
+TAC* tacJoin(TAC* l1, TAC* l2){
+    if (!l1) return l2;
+    if (!l2) return l1;
 
-    TAC* lastA = a;
-    while (lastA->next) {
-        lastA = lastA->next;
-    }
-    lastA->next = b;
-    b->prev = lastA;
+    TAC* point;
 
-    return a;
+    for (point = l2; point->prev !=0; point = point->prev)
+    ;
+
+    point->prev = l1;
+
+    return l2;
+}
+
+TAC* makeBinaryOp(int type, TAC* code[]){
+
+    return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
 }
 
 TAC* GenerateCode(AST* node){
     int i = 0;
     TAC* result = nullptr;
     TAC* code[MAX_SONS] = {0,0,0,0};
+
     if (!node) return nullptr;
+
+    // faz os filhos primeiro, bottom-up
     for (auto child : node->filho) {
         code[i++] = GenerateCode(child);
     }
 
     switch (node->tipo){
         case AST_SYMBOL:
-            result = new TAC(TAC_SYMBOL, node->simbolo);
-            break;
-        /*case AST_DEF:
-            result = new TAC(TAC_DEF, node->simbolo);
-            break;
-        case AST_VAR_ATTR:
-            result = new TAC(TAC_VAR_ATTR, node->simbolo, code[0]->resultado);
-            break;
-        case AST_VEC_ATTR:
-            result = new TAC(TAC_VEC_ATTR, node->simbolo, code[0]->resultado, code[1]->resultado);
-            break;
-        case AST_FUN_ATTR:
-            result = new TAC(TAC_FUN_ATTR, node->simbolo, code[0]->resultado);
-            break;
-        case AST_VAR_LIST:
-            result = new TAC(TAC_VAR_LIST, node->simbolo);
-            break;
-        case AST_PARAM_LIST:
-            result = new TAC(TAC_PARAM_LIST, node->simbolo);
-            break;
-        case AST_EXPR_LIST:
-            result = new TAC(TAC_EXPR_LIST, node->simbolo);
-            break;
-        case AST_PRINT_LIST:
-            result = new TAC(TAC_PRINT_LIST, node->simbolo);
-            break;
-        case AST_CMD_LIST:
-            result = new TAC(TAC_CMD_LIST, node->simbolo);
-            break;
-        case AST_CMD_IF:
-            result = new TAC(TAC_CMD_IF, nullptr, code[0]->resultado, code[1]->resultado);
-            break;
-        case AST_CMD_IFELSE:
-            result = new TAC(TAC_CMD_IFELSE, nullptr, code[0]->resultado, code[1]->resultado);
-            break;
-        case AST_CMD_WHILE:
-            result = new TAC(TAC_CMD_WHILE, nullptr, code[0]->resultado, code[1]->resultado);
-            break;
-        case AST_CMD_DOWHILE:
-            result = new TAC(TAC_CMD_DOWHILE, nullptr, code[0]->resultado, code[1]->resultado);
-            break;
-        case AST_CMD_ASSIGN:
-            result = new TAC(TAC_CMD_ASSIGN, code[0]->resultado, code[1]->op1);
-            break;
-        case AST_CMD_VEC_ASSIGN:
-            result = new TAC(TAC_CMD_VEC_ASSIGN, code[0]->resultado, code[1]->op1, code[2]->op1);
-            break;
-        case AST_CMD_READ:
-            result = new TAC(TAC_CMD_READ, node->simbolo);
-            break;
-        case AST_CMD_PRINT:
-            result = new TAC(TAC_CMD_PRINT, node->simbolo, code[0]->resultado);
-            break;
-        case AST_CMD_RETURN:
-            result = new TAC(TAC_CMD_RETURN, code[0]->resultado);
-            break;
-        case AST_BLOCKCMD:  
-            result = new TAC(TAC_BLOCKCMD, node->simbolo);
+            result = tacCreate(TAC_SYMBOL,node->simbolo,0,0);
             break;
         case AST_VEC:
-            result = new TAC(TAC_VEC, node->simbolo, code[0]->resultado);
+            result = tacJoin(code[0], 
+            tacCreate(TAC_VEC, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
             break;
-        case AST_FUNCALL:
-            result = new TAC(TAC_FUNCALL, node->simbolo, code[0]->resultado);
-            for (int j = 1; j < i; ++j) {
-                result->op2 = code[j]->resultado;
+        case AST_VAR_ATTR:
+            result = tacJoin(code[0], 
+            tacCreate(TAC_VAR_ATTR, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            break;
+        case AST_VEC_ATTR:
+            result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
+            tacCreate(TAC_VEC_ATTR, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
+            break;
+        case AST_FUN_ATTR:
+            if (node->filho.size() == 3) {
+                result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
+                tacCreate(TAC_FUN_ATTR, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            } else {
+                result = tacJoin(tacJoin(code[0], code[1]),
+                tacCreate(TAC_FUN_ATTR, code[0] ? code[0]->resultado : 0, 0, 0));
             }
             break;
+        case AST_VAR_LIST:
+            result = tacJoin(tacJoin(code[0], code[1]),
+            tacCreate(TAC_VAR_LIST, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            break;
+        case AST_PARAM_LIST:
+            result = tacJoin(tacJoin(code[0], code[1]),
+            tacCreate(TAC_PARAM_LIST, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            break;
+        case AST_PRINT_LIST:
+            result = tacJoin(tacJoin(code[0], code[1]),
+            tacCreate(TAC_PRINT_LIST, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            break;
+        case AST_EXPR_LIST:
+            result = tacJoin(tacJoin(code[0], code[1]),
+            tacCreate(TAC_EXPR_LIST, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            break;
+        case AST_CMD_PRINT:
+            result = tacJoin(code[0], 
+            tacCreate(TAC_CMD_PRINT, code[0] ? code[0]->resultado : 0, 0, 0));
+            break;
+        case AST_CMD_READ:
+            result = tacJoin(code[0], 
+            tacCreate(TAC_CMD_READ, code[0] ? code[0]->resultado : 0, 0, 0));
+            break;
+        case AST_FUNCALL:
+            result = tacJoin(code[0],
+            tacCreate(TAC_FUNCALL, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            break;
         case AST_ADD:
-            result = new TAC(TAC_ADD, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_ADD, code);
             break;
         case AST_SUB:
-            result = new TAC(TAC_SUB, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_SUB, code);
             break;
         case AST_MUL:
-            result = new TAC(TAC_MUL, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_MUL, code);
             break;
         case AST_DIV:
-            result = new TAC(TAC_DIV, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_DIV, code);
             break;
         case AST_LESS:
-            result = new TAC(TAC_LESS, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_LESS, code);
             break;
         case AST_LEQ:
-            result = new TAC(TAC_LEQ, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_LEQ, code);
             break;
         case AST_GREATER:
-            result = new TAC(TAC_GREATER, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_GREATER, code);
             break;
         case AST_GEQ:
-            result = new TAC(TAC_GEQ, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_GEQ, code);
             break;
         case AST_EQUAL:
-            result = new TAC(TAC_EQUAL, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_EQUAL, code);
             break;
         case AST_NEQUAL:
-            result = new TAC(TAC_NEQUAL, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_NEQUAL, code);
             break;
         case AST_AND:
-            result = new TAC(TAC_AND, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_AND, code);
             break;
         case AST_OR:
-            result = new TAC(TAC_OR, code[0]->resultado, code[1]->resultado);
+            result = makeBinaryOp(TAC_OR, code);
             break;
         case AST_NOT:
-            result = new TAC(TAC_NOT, code[0]->resultado);
-            break;*/
+            result = tacJoin(tacJoin(code[0],code[1]),
+            tacCreate(TAC_NOT,symbolMakeTemp(),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+            break;
+        case AST_CMD_ASSIGN:
+            result = tacJoin(code[0], code[1]),
+            tacCreate(TAC_CMD_ASSIGN, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0);
+            break;
+        case AST_CMD_VEC_ASSIGN:
+            result = tacJoin(tacJoin(code[0], code[1]),
+            tacCreate(TAC_CMD_VEC_ASSIGN, node->filho[0]->filho[0]->simbolo, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
+            break;
         default:
-            fprintf(stderr, "Passei pelo tipo %d de AST.\n", node->tipo);
-            //fprintf(stderr, "Erro: tipo de AST desconhecido %d\n", node->tipo);
-            //exit(EXIT_FAILURE);
+            result = tacJoin(code[0],tacJoin(code[1],tacJoin(code[2],code[3])));
+            break;
+            //fprintf(stderr, "Passei pelo tipo %d de AST.\n", node->tipo);
     }
     return result;
 }
