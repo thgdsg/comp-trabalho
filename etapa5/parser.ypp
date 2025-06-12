@@ -150,7 +150,7 @@ vecdec: KW_INT TK_IDENTIFIER '[' lit ']' '=' listvar ';'
 
 // lista de variaveis (pra declaração de vetores)
 listvar: lit ',' listvar { $$ = new AST(AST_VAR_LIST, { $1, $3 }); }
-    | lit { $$ = $1; }
+    | lit { $$ = new AST(AST_VAR_LIST, { $1 }); }
     ;
 
 // declaração de funções

@@ -128,7 +128,7 @@ TAC* GenerateCode(AST* node){
             tacCreate(TAC_CMD_READ, code[0] ? code[0]->resultado : 0, 0, 0));
             break;
         case AST_FUNCALL:
-            result = tacJoin(code[0],
+            result = tacJoin(tacJoin(code[0], code[1]),
             tacCreate(TAC_FUNCALL, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
             break;
         case AST_ADD:
@@ -168,15 +168,15 @@ TAC* GenerateCode(AST* node){
             result = makeBinaryOp(TAC_OR, code);
             break;
         case AST_NOT:
-            result = tacJoin(tacJoin(code[0],code[1]),
+            result = tacJoin(code[0],
             tacCreate(TAC_NOT,symbolMakeTemp(),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
             break;
         case AST_CMD_ASSIGN:
-            result = tacJoin(code[0], code[1]),
-            tacCreate(TAC_CMD_ASSIGN, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0);
+            result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
+            tacCreate(TAC_CMD_ASSIGN, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
             break;
         case AST_CMD_VEC_ASSIGN:
-            result = tacJoin(tacJoin(code[0], code[1]),
+            result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
             tacCreate(TAC_CMD_VEC_ASSIGN, node->filho[0]->filho[0]->simbolo, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
             break;
         default:
