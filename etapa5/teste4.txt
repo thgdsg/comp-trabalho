@@ -6,11 +6,18 @@ int z [3] = 1,'b',12;
 int number = 'A';
 real matrix [033];
 int func (int h, int j ){
+	if (h > 0) {
+		return h + j;
+	}
+	else{
+		return h - j;
+	}
 	x = 9 + 5 / 2;
 	a = 10;
 	b = z[2];
 	print z['l'] "banana";
 	read a;
+	return a + b + x;
 }
 int main (){
 	y = func(10, 2);

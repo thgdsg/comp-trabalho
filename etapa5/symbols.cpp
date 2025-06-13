@@ -11,7 +11,7 @@ using namespace std;
 
 // tabela de Símbolos baseada na implementação feita em aula pelo professor
 map<string,SYMBOL*> SymbolTable;
-vector<string> symbolName = { "SYMBOL_INVALID", "SYMBOL_ID_INT", "SYMBOL_ID_BYTE", "SYMBOL_ID_REAL", "SYMBOL_INT", "SYMBOL_CHAR", "SYMBOL_REAL", "SYMBOL_STRING"};
+vector<string> symbolName = { "SYMBOL_INVALID", "SYMBOL_ID_INT", "SYMBOL_ID_BYTE", "SYMBOL_ID_REAL", "SYMBOL_INT", "SYMBOL_CHAR", "SYMBOL_REAL", "SYMBOL_STRING", "SYMBOL_LABEL"};
 vector<string> dataType = { "DATA_ID", "DATA_INT", "DATA_REAL", "DATA_STRING", "DATA_BOOL", "DATA_FUNCTION", "DATA_VECTOR"};
 
 // função para inserir símbolos na tabela, baseada na feita em aula
@@ -89,4 +89,12 @@ SYMBOL* symbolMakeTemp(void) {
     snprintf(buffer, sizeof(buffer), "temp%d", serialNumber++);
     SYMBOL* tempSymbol = symbolInsert(SYMBOL_INVALID, DATA_ID, buffer);
     return tempSymbol;
+}
+
+SYMBOL* symbolMakeLabel(void){
+    static int serialNumber = 0;
+    static char buffer[20] = "";
+    snprintf(buffer, sizeof(buffer), "label%d", serialNumber++);
+    SYMBOL* labelSymbol = symbolInsert(SYMBOL_LABEL, DATA_ID, buffer);
+    return labelSymbol;
 }

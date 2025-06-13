@@ -9,7 +9,7 @@ using namespace std;
 
 // enum para os tipos de símbolos, baseada na vista em aula
 enum SymbolType {
-    SYMBOL_INVALID, SYMBOL_ID_INT, SYMBOL_ID_BYTE, SYMBOL_ID_REAL, SYMBOL_INT, SYMBOL_CHAR, SYMBOL_REAL, SYMBOL_STRING
+    SYMBOL_INVALID, SYMBOL_ID_INT, SYMBOL_ID_BYTE, SYMBOL_ID_REAL, SYMBOL_INT, SYMBOL_CHAR, SYMBOL_REAL, SYMBOL_STRING, SYMBOL_LABEL
 };
 
 // enum para os tipos de dados, baseada na vista em aula
@@ -33,4 +33,5 @@ SYMBOL *symbolInsert(int type, int dataType, char* text);
 SYMBOL* symbolLookup(char* text);
 void symbolPrintTable();
 SYMBOL* symbolMakeTemp(void);
+SYMBOL* symbolMakeLabel(void);
 #endif
