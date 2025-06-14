@@ -203,7 +203,7 @@ int semanticCheck(AST* nodo){
                     switch(symType) {
                       case SYMBOL_ID_INT:  dt = DATA_INT;  break;
                       case SYMBOL_ID_REAL: dt = DATA_REAL; break;
-                      case SYMBOL_ID_BYTE: dt = DATA_BOOL; break;
+                      case SYMBOL_ID_BYTE: dt = DATA_INT; break;
                       default:             dt = DATA_ID;   break;
                     }
                     // reinsere para atualizar dataType
@@ -481,7 +481,7 @@ int getDataType(AST* expr){
         if (expr->filho[0]->simbolo->type == SYMBOL_ID_REAL)
           return DATA_REAL;
         if (expr->filho[0]->simbolo->type == SYMBOL_ID_BYTE)
-          return DATA_BOOL;
+          return DATA_INT;
       }
       return DATA_ID;
 

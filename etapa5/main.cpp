@@ -41,6 +41,10 @@ int main(int argc, char** argv){
         fprintf(stderr, "Found %d semantic errors\n", errosSemanticos);
         exit(4);
     }
+    // por padrão, imprime a TAC de cima pra baixo
+    //tacPrintForwards(GenerateCode(raiz));
+    // se necessário, pode imprimir de baixo pra cima
     tacPrintBackwards(GenerateCode(raiz));
+    fprintf(stderr, "Aviso: arvore gerada de cima pra baixo. Caso queira gerar ao contrario, altere o final do arquivo main.cpp\n");
     exit(0);
 }

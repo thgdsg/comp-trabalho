@@ -46,6 +46,7 @@ struct TAC{
 
 void tacPrintSingle(TAC* tac);
 void tacPrintBackwards(TAC* tac);
+void tacPrintForwards(TAC* tac);
 TAC* tacJoin(TAC* a, TAC* b);
 TAC* GenerateCode(AST* node);
 TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2);
@@ -56,5 +57,4 @@ TAC* makeIfThenElse(TAC* code[]);
 TAC* makeWhile(TAC* code[]);
 TAC* makeDoWhile(TAC* code[]);
 TAC* makeFunction(TAC* code[]);
-
 #endif

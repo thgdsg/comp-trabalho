@@ -15,12 +15,19 @@ int func (int h, int j ){
 	x = 9 + 5 / 2;
 	a = 10;
 	b = z[2];
-	print z['l'] "banana";
+	z['i'] = 10;
+	print z['l'] "banana" "batata";
 	read a;
 	return a + b + x;
 }
+
+real vegetais (real batata, int tomate, byte alface){
+	return batata;
+}
+
 int main (){
 	y = func(10, 2);
+	matrix[01] = vegetais(10/2,5,2);
 	do
 		{
 			x = 1;
@@ -29,6 +36,7 @@ int main (){
 			b = 5;
 		}
 	while y < 2 | x < 2 + 5 * 3;
+	
 	while x != 02 do
 		{
 			x = x + b;
@@ -41,5 +49,9 @@ int main (){
 }
 }
 int incm (int p, int n ){
-	return 'a';
+	if (p > n)
+	{
+		return 'a';
+	}
+	return n;
 }

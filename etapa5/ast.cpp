@@ -402,8 +402,9 @@ void astGenerate(AST* nodo, FILE* out, int indent){
             break;
         }
         case AST_NOT:{
-            fputs("~", out);
+            fputs("~ (", out);
             astGenerate(nodo->filho[0], out, 0);
+            fputs(")", out);
             break;
         }
         default:

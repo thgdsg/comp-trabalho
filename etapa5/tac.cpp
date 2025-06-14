@@ -46,6 +46,16 @@ void tacPrintBackwards(TAC* tac){
     }
 }
 
+void tacPrintForwards(TAC* tac) {
+    if (!tac) return;
+    // encontra o início da lista
+    while (tac->prev) tac = tac->prev;
+
+    for (; tac; tac = tac->next) {
+        tacPrintSingle(tac);
+    }
+}
+
 TAC* tacJoin(TAC* l1, TAC* l2){
     if (!l1) return l2;
     if (!l2) return l1;
@@ -55,7 +65,11 @@ TAC* tacJoin(TAC* l1, TAC* l2){
     for (point = l2; point->prev !=0; point = point->prev)
     ;
 
-    point->prev = l1;
+    point->prev = l1; // o início de l2 (point) aponta para trás para l1 (final da primeira lista)
+
+    if (l1) {
+        l1->next = point; // l1 (final da primeira lista) aponta para frente para o início de l2 (point)
+    }
 
     return l2;
 }
@@ -175,7 +189,7 @@ TAC* makeFunction(TAC* code[]){
     TAC* start_tac = tacCreate(TAC_FUNC_START, func_symbol, nullptr, nullptr);
     TAC* end_tac = tacCreate(TAC_FUNC_END, func_symbol, nullptr, nullptr);
 
-    // Encadeia: start_tac -> params_code (se existir) -> body_code -> end_tac
+    // encadeia: start_tac -> params_code (se existir) -> body_code -> end_tac
     TAC* result_code = start_tac;
     if (params_code) {
         result_code = tacJoin(result_code, params_code);
@@ -188,12 +202,51 @@ TAC* makeFunction(TAC* code[]){
 
 TAC* makeList(TAC* code[], int type){
     TAC* result = nullptr;
-
-    result = tacJoin(tacJoin(code[0], code[1]),
-    tacCreate(type, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+    if (type == TAC_VAR_LIST) {
+        result = tacJoin(tacJoin(code[0], code[1]),
+        tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0));
+    } else if (type == TAC_PARAM_LIST) {
+        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0),
+        tacJoin(code[0], code[1]));
+    } else if (type == TAC_PRINT_LIST) {
+        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0),
+        tacJoin(code[0], code[1]));
+    } else if (type == TAC_EXPR_LIST) {
+        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0),
+        tacJoin(code[0], code[1]));
+    }
     
     return result;
 }
+
+TAC* makeAssign(TAC* code[], int type, AST* node){
+    TAC* result = nullptr;
+
+    if (type == TAC_CMD_ASSIGN) {
+        result = tacJoin(tacJoin(code[0], code[1]),
+    tacCreate(type, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+    } else if (type == TAC_CMD_VEC_ASSIGN) {
+        result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
+    tacCreate(type, node->filho[0]->filho[0]->simbolo, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
+    }
+
+    return result;
+}
+
+TAC* makeAttr(TAC* code[], int type){
+    TAC* result = nullptr;
+
+    if (type == TAC_VAR_ATTR) {
+        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0),
+        code[0]);
+    } else if (type == TAC_VEC_ATTR) {
+        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0),
+        tacJoin(tacJoin(code[0], code[1]), code[2]));
+    }
+
+    return result;
+}
+
 TAC* GenerateCode(AST* node){
     int i = 0;
     TAC* result = nullptr;
@@ -211,16 +264,14 @@ TAC* GenerateCode(AST* node){
             result = tacCreate(TAC_SYMBOL,node->simbolo,0,0);
             break;
         case AST_VEC:
-            result = tacJoin(code[0], 
+            result = tacJoin(code[0],
             tacCreate(TAC_VEC, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
             break;
         case AST_VAR_ATTR:
-            result = tacJoin(code[0], 
-            tacCreate(TAC_VAR_ATTR, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            result = makeAttr(code, TAC_VAR_ATTR);
             break;
         case AST_VEC_ATTR:
-            result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
-            tacCreate(TAC_VEC_ATTR, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
+            result = makeAttr(code, TAC_VEC_ATTR);
             break;
         case AST_FUN_ATTR:
             result = makeFunction(code);
@@ -238,16 +289,16 @@ TAC* GenerateCode(AST* node){
             result = makeList(code, TAC_EXPR_LIST);
             break;
         case AST_CMD_PRINT:
-            result = tacJoin(code[0], 
-            tacCreate(TAC_CMD_PRINT, code[0] ? code[0]->resultado : 0, 0, 0));
+            result = tacJoin(tacCreate(TAC_CMD_PRINT, code[0] ? code[0]->resultado : 0, 0, 0),
+            code[0]);
             break;
         case AST_CMD_READ:
             result = tacJoin(code[0], 
             tacCreate(TAC_CMD_READ, code[0] ? code[0]->resultado : 0, 0, 0));
             break;
         case AST_FUNCALL:
-            result = tacJoin(tacJoin(code[0], code[1]),
-            tacCreate(TAC_FUNCALL, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            result = tacJoin(tacCreate(TAC_FUNCALL, symbolMakeTemp(), code[0] ? code[0]->resultado : 0, 0),
+            tacJoin(code[0], code[1]));
             break;
         case AST_ADD:
             result = makeBinaryOp(TAC_ADD, code);
@@ -290,12 +341,10 @@ TAC* GenerateCode(AST* node){
             tacCreate(TAC_NOT,symbolMakeTemp(),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
             break;
         case AST_CMD_ASSIGN:
-            result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
-            tacCreate(TAC_CMD_ASSIGN, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+            result = makeAssign(code, TAC_CMD_ASSIGN, nullptr);
             break;
         case AST_CMD_VEC_ASSIGN:
-            result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
-            tacCreate(TAC_CMD_VEC_ASSIGN, node->filho[0]->filho[0]->simbolo, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
+            result = makeAssign(code, TAC_CMD_VEC_ASSIGN, node);
             break;
         case AST_CMD_RETURN:
             result = tacJoin(code[0],

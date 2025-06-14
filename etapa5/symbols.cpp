@@ -86,7 +86,7 @@ void symbolPrintTable(){
 SYMBOL* symbolMakeTemp(void) {
     static int serialNumber = 0;
     static char buffer[20] = "";
-    snprintf(buffer, sizeof(buffer), "temp%d", serialNumber++);
+    snprintf(buffer, sizeof(buffer), "_temp%d", serialNumber++);
     SYMBOL* tempSymbol = symbolInsert(SYMBOL_INVALID, DATA_ID, buffer);
     return tempSymbol;
 }
@@ -94,7 +94,7 @@ SYMBOL* symbolMakeTemp(void) {
 SYMBOL* symbolMakeLabel(void){
     static int serialNumber = 0;
     static char buffer[20] = "";
-    snprintf(buffer, sizeof(buffer), "label%d", serialNumber++);
+    snprintf(buffer, sizeof(buffer), "_label%d", serialNumber++);
     SYMBOL* labelSymbol = symbolInsert(SYMBOL_LABEL, DATA_ID, buffer);
     return labelSymbol;
 }
