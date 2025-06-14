@@ -131,7 +131,7 @@ TAC* makeWhile(TAC* code[]){
 
     TAC* startLabelTac = tacCreate(TAC_LABEL, startLabel, nullptr, nullptr);
     TAC* jumpFalseToEnd = tacCreate(TAC_JUMP_FALSE, endLabel, conditionCode ? conditionCode->resultado : nullptr, nullptr);
-    TAC* jumpToStart = tacCreate(TAC_JUMP_TRUE, startLabel, nullptr, nullptr);
+    TAC* jumpToStart = tacCreate(TAC_JUMP_TRUE, startLabel, conditionCode ? conditionCode->resultado : nullptr, nullptr);
     TAC* endLabelTac = tacCreate(TAC_LABEL, endLabel, nullptr, nullptr);
 
     // Encadeia as TACs:
@@ -168,7 +168,7 @@ TAC* makeDoWhile(TAC* code[]){
            tacJoin(bodyCode,
            tacJoin(conditionCode, jumpTrueToStart)));
            // tacJoin(conditionCode, 
-           // tacJoin(jumpTrueToStart, endLabelTac)))); // If using an end label
+           // tacJoin(jumpTrueToStart, endLabelTac))));
 }
 
 TAC* makeFunction(TAC* code[]){
@@ -180,24 +180,37 @@ TAC* makeFunction(TAC* code[]){
 
     if (code[2] == nullptr){
         body_code = code[1];
+
+        TAC* start_tac = tacCreate(TAC_FUNC_START, func_symbol, 0, nullptr);
+        TAC* end_tac = tacCreate(TAC_FUNC_END, func_symbol, nullptr, nullptr);
+
+        // encadeia: start_tac -> params_code (se existir) -> body_code -> end_tac
+        TAC* result_code = start_tac;
+        if (params_code) {
+            result_code = tacJoin(result_code, params_code);
+        }
+        result_code = tacJoin(result_code, body_code);
+        result_code = tacJoin(result_code, end_tac);
+
+        return result_code;
     }
     else{
         params_code = code[1];
         body_code = code[2];
+
+        TAC* start_tac = tacCreate(TAC_FUNC_START, func_symbol, code[1] ? code[1]->resultado : 0, nullptr);
+        TAC* end_tac = tacCreate(TAC_FUNC_END, func_symbol, nullptr, nullptr);
+
+        // encadeia: start_tac -> params_code (se existir) -> body_code -> end_tac
+        TAC* result_code = start_tac;
+        if (params_code) {
+            result_code = tacJoin(result_code, params_code);
+        }
+        result_code = tacJoin(result_code, body_code);
+        result_code = tacJoin(result_code, end_tac);
+
+        return result_code;
     }
-
-    TAC* start_tac = tacCreate(TAC_FUNC_START, func_symbol, nullptr, nullptr);
-    TAC* end_tac = tacCreate(TAC_FUNC_END, func_symbol, nullptr, nullptr);
-
-    // encadeia: start_tac -> params_code (se existir) -> body_code -> end_tac
-    TAC* result_code = start_tac;
-    if (params_code) {
-        result_code = tacJoin(result_code, params_code);
-    }
-    result_code = tacJoin(result_code, body_code);
-    result_code = tacJoin(result_code, end_tac);
-
-    return result_code;
 }
 
 TAC* makeList(TAC* code[], int type){
@@ -206,14 +219,14 @@ TAC* makeList(TAC* code[], int type){
         result = tacJoin(tacJoin(code[0], code[1]),
         tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0));
     } else if (type == TAC_PARAM_LIST) {
-        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0),
-        tacJoin(code[0], code[1]));
+        result = tacJoin(tacJoin(code[0], code[1]),
+        tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0));
     } else if (type == TAC_PRINT_LIST) {
-        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0),
-        tacJoin(code[0], code[1]));
+        result = tacJoin(tacJoin(code[0], code[1]),
+        tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0));
     } else if (type == TAC_EXPR_LIST) {
-        result = tacJoin(tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0),
-        tacJoin(code[0], code[1]));
+        result = tacJoin(tacJoin(code[0], code[1]),
+        tacCreate(type, code[0] ? code[0]->resultado : 0, 0, 0));
     }
     
     return result;
@@ -297,8 +310,8 @@ TAC* GenerateCode(AST* node){
             tacCreate(TAC_CMD_READ, code[0] ? code[0]->resultado : 0, 0, 0));
             break;
         case AST_FUNCALL:
-            result = tacJoin(tacCreate(TAC_FUNCALL, symbolMakeTemp(), code[0] ? code[0]->resultado : 0, 0),
-            tacJoin(code[0], code[1]));
+            result = tacJoin(tacJoin(code[0], code[1]),
+        tacCreate(TAC_FUNCALL, symbolMakeTemp(), code[0] ? code[0]->resultado : 0, 0));
             break;
         case AST_ADD:
             result = makeBinaryOp(TAC_ADD, code);
