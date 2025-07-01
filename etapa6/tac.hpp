@@ -51,7 +51,7 @@ TAC* tacJoin(TAC* a, TAC* b);
 TAC* GenerateCode(AST* node);
 TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2);
 
-TAC* makeBinaryOp(int type, TAC* code[]);
+TAC* makeBinaryOp(int type, AST* node, TAC* code[]);
 TAC* makeIfThen(TAC* code[]);
 TAC* makeIfThenElse(TAC* code[]);
 TAC* makeWhile(TAC* code[]);

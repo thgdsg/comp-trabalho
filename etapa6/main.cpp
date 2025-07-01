@@ -7,6 +7,7 @@
 #include "ast.hpp"
 #include "semantic.hpp"
 #include "tac.hpp"
+#include "asm.hpp"
 extern FILE* yyin;
 extern int isRunning();
 extern int getLineNumber();
@@ -33,7 +34,7 @@ int main(int argc, char** argv){
     //symbolPrintTable();
 
     // gera o .txt usando o nome passado em argv[2]
-    astGenerateToFile(raiz, argv[2]);
+    //astGenerateToFile(raiz, argv[2]);
     int errosSemanticos = semanticCheck(raiz);
     
     //symbolPrintTable();
@@ -41,10 +42,18 @@ int main(int argc, char** argv){
         fprintf(stderr, "Found %d semantic errors\n", errosSemanticos);
         exit(4);
     }
+    TAC* codigo_TAC = GenerateCode(raiz);
     // por padrão, imprime a TAC de cima pra baixo
-    //tacPrintForwards(GenerateCode(raiz));
+    tacPrintForwards(codigo_TAC);
     // se necessário, pode imprimir de baixo pra cima
-    tacPrintBackwards(GenerateCode(raiz));
+    //tacPrintBackwards(GenerateCode(raiz));
     fprintf(stderr, "Aviso: arvore gerada de cima pra baixo. Caso queira gerar ao contrario, altere o final do arquivo main.cpp\n");
+    // gera o .asm usando o nome passado em argv[3]
+    FILE* out = fopen(argv[2], "w");
+    if (!out) {
+        fprintf(stderr, "Cannot open output file %s\n", argv[2]);
+        exit(3);
+    }
+    asmGenerate(codigo_TAC, out);
     exit(0);
 }

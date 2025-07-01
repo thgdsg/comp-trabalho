@@ -1,5 +1,6 @@
 make -s clean
 make -s
-./etapa5 teste4.txt saida.txt
-rm saida.txt
+./etapa6 teste4.txt saida.s
+gcc -c saida.s
+gcc saida.o -o saida
 make -s clean

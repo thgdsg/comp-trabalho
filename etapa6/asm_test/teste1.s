@@ -1,5 +1,30 @@
 	.file	"teste1.c"
 	.text
+	.globl	w
+	.bss
+	.align 4
+	.type	w, @object
+	.size	w, 4
+w:
+	.zero	4
+	.globl	x
+	.align 4
+	.type	x, @object
+	.size	x, 4
+x:
+	.zero	4
+	.globl	z
+	.align 4
+	.type	z, @object
+	.size	z, 4
+z:
+	.zero	4
+	.globl	y
+	.align 4
+	.type	y, @object
+	.size	y, 4
+y:
+	.zero	4
 	.section	.rodata
 .LC0:
 	.string	"%d"
@@ -27,7 +52,7 @@ main:
 	.cfi_endproc
 .LFE0:
 	.size	main, .-main
-	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
+	.ident	"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
 	.section	.note.GNU-stack,"",@progbits
 	.section	.note.gnu.property,"a"
 	.align 8

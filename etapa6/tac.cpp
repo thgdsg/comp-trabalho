@@ -74,9 +74,19 @@ TAC* tacJoin(TAC* l1, TAC* l2){
     return l2;
 }
 
-TAC* makeBinaryOp(int type, TAC* code[]){
+TAC* makeBinaryOp(int type, AST* node, TAC* code[]){
+    SYMBOL* tipo_op = symbolLookup(const_cast<char*>(code[0]->resultado->text.c_str()));
 
-    return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+    if (type == TAC_ADD || type == TAC_SUB || type == TAC_MUL || type == TAC_DIV){
+        if (tipo_op->dataType == DATA_INT)
+            return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(DATA_INT),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+        if (tipo_op->dataType == DATA_REAL)
+            return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(DATA_REAL),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+    }
+    else if (type == TAC_LESS || type == TAC_LEQ || type == TAC_GREATER || type == TAC_GEQ ||
+             type == TAC_EQUAL || type == TAC_NEQUAL || type == TAC_AND || type == TAC_OR) {
+        return tacJoin(tacJoin(code[0], code[1]), tacCreate(type, symbolMakeTemp(DATA_BOOL), code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0));
+    }
 }
 
 TAC* makeIfThen(TAC* code[]){
@@ -311,47 +321,47 @@ TAC* GenerateCode(AST* node){
             break;
         case AST_FUNCALL:
             result = tacJoin(tacJoin(code[0], code[1]),
-        tacCreate(TAC_FUNCALL, symbolMakeTemp(), code[0] ? code[0]->resultado : 0, 0));
+            tacCreate(TAC_FUNCALL, symbolMakeTemp(DATA_FUNCTION), code[0] ? code[0]->resultado : 0, 0));
             break;
         case AST_ADD:
-            result = makeBinaryOp(TAC_ADD, code);
+            result = makeBinaryOp(TAC_ADD, node, code);
             break;
         case AST_SUB:
-            result = makeBinaryOp(TAC_SUB, code);
+            result = makeBinaryOp(TAC_SUB, node, code);
             break;
         case AST_MUL:
-            result = makeBinaryOp(TAC_MUL, code);
+            result = makeBinaryOp(TAC_MUL, node, code);
             break;
         case AST_DIV:
-            result = makeBinaryOp(TAC_DIV, code);
+            result = makeBinaryOp(TAC_DIV, node, code);
             break;
         case AST_LESS:
-            result = makeBinaryOp(TAC_LESS, code);
+            result = makeBinaryOp(TAC_LESS, node, code);
             break;
         case AST_LEQ:
-            result = makeBinaryOp(TAC_LEQ, code);
+            result = makeBinaryOp(TAC_LEQ, node, code);
             break;
         case AST_GREATER:
-            result = makeBinaryOp(TAC_GREATER, code);
+            result = makeBinaryOp(TAC_GREATER, node, code);
             break;
         case AST_GEQ:
-            result = makeBinaryOp(TAC_GEQ, code);
+            result = makeBinaryOp(TAC_GEQ, node, code);
             break;
         case AST_EQUAL:
-            result = makeBinaryOp(TAC_EQUAL, code);
+            result = makeBinaryOp(TAC_EQUAL, node, code);
             break;
         case AST_NEQUAL:
-            result = makeBinaryOp(TAC_NEQUAL, code);
+            result = makeBinaryOp(TAC_NEQUAL, node, code);
             break;
         case AST_AND:
-            result = makeBinaryOp(TAC_AND, code);
+            result = makeBinaryOp(TAC_AND, node, code);
             break;
         case AST_OR:
-            result = makeBinaryOp(TAC_OR, code);
+            result = makeBinaryOp(TAC_OR, node, code);
             break;
         case AST_NOT:
             result = tacJoin(code[0],
-            tacCreate(TAC_NOT,symbolMakeTemp(),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+            tacCreate(TAC_NOT,symbolMakeTemp(DATA_BOOL),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
             break;
         case AST_CMD_ASSIGN:
             result = makeAssign(code, TAC_CMD_ASSIGN, nullptr);
