@@ -47,7 +47,7 @@ int main(int argc, char** argv){
     tacPrintForwards(codigo_TAC);
     // se necessário, pode imprimir de baixo pra cima
     //tacPrintBackwards(GenerateCode(raiz));
-    fprintf(stderr, "Aviso: arvore gerada de cima pra baixo. Caso queira gerar ao contrario, altere o final do arquivo main.cpp\n");
+    fprintf(stderr, "Warning: arvore gerada de cima pra baixo. Caso queira gerar ao contrario, altere o final do arquivo main.cpp\n");
     // gera o .asm usando o nome passado em argv[3]
     FILE* out = fopen(argv[2], "w");
     if (!out) {

@@ -40,9 +40,10 @@ string getSymbolAddress(SYMBOL* s) {
 void asmGenerateDataSection(TAC* first, FILE* out) {
     fprintf(out, "\t.section .data\n");
 
-    // 1. Declara todas as variáveis globais e temporárias a partir da SymbolTable
-    for (auto const& [name, symbol] : SymbolTable) {
-        // Ignora funções, pois elas vão na seção .text
+    for (auto it = SymbolTable.begin(); it != SymbolTable.end(); ++it) {
+        const std::string& name = it->first;
+        SYMBOL* symbol = it->second;
+
         if (symbol->dataType == DATA_FUNCTION) {
             continue;
         }
@@ -53,12 +54,30 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
         }
 
         // Trata variáveis globais (exceto vetores)
-        else if (symbol->type == SYMBOL_ID_INT || symbol->dataType == SYMBOL_ID_REAL || symbol->dataType == SYMBOL_ID_BYTE) {
-            // falta diferenciar tamanho na memoria entre tipos de simbolos
+        else if (symbol->dataType != DATA_VECTOR && (symbol->type == SYMBOL_ID_INT || symbol->type == SYMBOL_ID_REAL || symbol->type == SYMBOL_ID_BYTE)) {
             fprintf(out, "\t.globl %s\n", name.c_str());
-            fprintf(out, "\t.align 4\n");
             fprintf(out, "%s:\n", name.c_str());
-            fprintf(out, "\t.long 0\n"); // Inicializa com 0 por padrão
+
+            switch (symbol->dataType) {
+                case DATA_INT:
+                    if (symbol->type == SYMBOL_ID_INT){
+                        fprintf(out, "\t.align 4\n");
+                        fprintf(out, "\t.long 0\n");
+                    }
+                    else if (symbol->type == SYMBOL_ID_BYTE) {
+                        fprintf(out, "\t.align 1\n");
+                        fprintf(out, "\t.byte 0\n");
+                        break;
+                    }
+                case DATA_REAL:
+                    fprintf(out, "\t.align 4\n");
+                    fprintf(out, "\t.long 0\n");
+                    fprintf(out, "\t.long 0\n");
+                    break;
+                default:
+                    fprintf(stderr, "Warning: Unsupported data type for symbol '%s'.\n", name.c_str());
+                    break;
+            }
         }
     }
 
@@ -66,7 +85,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
     for (TAC* tac = first; tac; tac = tac->next) {
         if (tac->tipo == TAC_VEC_ATTR) {
             if (!tac->resultado || !tac->op1) {
-                fprintf(stderr, "Warning: Malformed TAC_VEC_ATTR found. Skipping.\n");
+                fprintf(stderr, "Warning: Erro no TAC_VEC_ATTR!\n");
                 continue;
             }
             SYMBOL* vecSymbol = tac->resultado;
@@ -134,16 +153,34 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                 // Verifica se o literal é do tipo char para converter para ASCII
                 if (s->type == SYMBOL_CHAR) {
                     // Extrai o caractere (ex: de "'a'" para 'a') e obtém seu valor ASCII
+                    fprintf(out, "\t.align 4\n");
                     fprintf(out, "\t.long %d\n", (int)literalText[1]);
                 } else {
                     // Se for um inteiro normal, apenas imprime o valor
+                    fprintf(out, "\t.align 4\n");
                     fprintf(out, "\t.long %s\n", literalText.c_str());
                 }
                 break;
             case DATA_REAL:
-                // A diretiva .float é usada para números de ponto flutuante de precisão simples
-                fprintf(out, "\t.float %s\n", literalText.c_str());
+            {
+                // Divide o literal real "numerador/denominador" em duas partes
+                size_t slash_pos = literalText.find('/');
+                string numerator = "0";
+                string denominator = "1"; // Evita divisão por zero se o formato for inesperado
+
+                if (slash_pos != string::npos) {
+                    numerator = literalText.substr(0, slash_pos);
+                    denominator = literalText.substr(slash_pos + 1);
+                } else {
+                    // Adiciona um aviso se o formato não for o esperado
+                    fprintf(stderr, "Warning: literal REAL '%s' possui um formato inesperado. Considerando como 0/1.\n", literalText.c_str());
+                }
+
+                fprintf(out, "\t.align 4\n");
+                fprintf(out, "\t.long %s\n", numerator.c_str());
+                fprintf(out, "\t.long %s\n", denominator.c_str());
                 break;
+            }
             case DATA_STRING:
                 // A diretiva .string é para literais de texto
                 fprintf(out, "\t.string %s\n", literalText.c_str());

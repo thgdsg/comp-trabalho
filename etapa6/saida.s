@@ -1,28 +1,4 @@
 	.section .data
-	.globl "."
-	.align 4
-".":
-	.long 0
-	.globl "banana"
-	.align 4
-"banana":
-	.long 0
-	.globl "batata"
-	.align 4
-"batata":
-	.long 0
-	.globl "qwaerfwearf"
-	.align 4
-"qwaerfwearf":
-	.long 0
-	.globl 01/2
-	.align 4
-01/2:
-	.long 0
-	.globl 5/3
-	.align 4
-5/3:
-	.long 0
 	.comm _temp0,4,4
 	.comm _temp1,4,4
 	.comm _temp10,4,4
@@ -46,48 +22,80 @@
 	.comm _temp6,4,4
 	.comm _temp9,4,4
 	.globl a
-	.align 4
 a:
-	.long 0
-	.globl batata
 	.align 4
+	.long 0
+	.align 4
+	.long 0
+	.long 0
+	.globl alface
+alface:
+	.align 1
+	.byte 0
+	.globl b
+b:
+	.align 1
+	.byte 0
+	.globl batata
 batata:
+	.align 4
+	.long 0
 	.long 0
 	.globl h
-	.align 4
 h:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl j
-	.align 4
 j:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl n
-	.align 4
 n:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl number
-	.align 4
 number:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl p
-	.align 4
 p:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl tomate
-	.align 4
 tomate:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl x
-	.align 4
 x:
+	.align 4
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl y
-	.align 4
 y:
-	.long 0
-	.globl z
 	.align 4
-z:
+	.long 0
+	.align 4
+	.long 0
 	.long 0
 	.globl z
 	.align 4
@@ -110,42 +118,63 @@ matrix:
 .LIT20:
 	.string "qwaerfwearf"
 .LIT6:
+	.align 4
 	.long 65
 .LIT3:
+	.align 4
 	.long 74
 .LIT22:
+	.align 4
 	.long 97
 .LIT4:
+	.align 4
 	.long 98
 .LIT12:
+	.align 4
 	.long 105
 .LIT13:
+	.align 4
 	.long 108
 .LIT8:
+	.align 4
 	.long 0
 .LIT11:
+	.align 4
 	.long 01
 .LIT17:
-	.float 01/2
+	.align 4
+	.long 01
+	.long 2
 .LIT0:
+	.align 4
 	.long 1
 .LIT16:
+	.align 4
 	.long 10
 .LIT1:
+	.align 4
 	.long 2
 .LIT18:
+	.align 4
 	.long 20
 .LIT5:
+	.align 4
 	.long 21
 .LIT2:
+	.align 4
 	.long 3
 .LIT7:
+	.align 4
 	.long 330
 .LIT10:
+	.align 4
 	.long 5
 .LIT21:
-	.float 5/3
+	.align 4
+	.long 5
+	.long 3
 .LIT9:
+	.align 4
 	.long 9
 	.section .text
 	.globl main

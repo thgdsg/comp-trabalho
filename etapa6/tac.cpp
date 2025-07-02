@@ -87,6 +87,12 @@ TAC* makeBinaryOp(int type, AST* node, TAC* code[]){
              type == TAC_EQUAL || type == TAC_NEQUAL || type == TAC_AND || type == TAC_OR) {
         return tacJoin(tacJoin(code[0], code[1]), tacCreate(type, symbolMakeTemp(DATA_BOOL), code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0));
     }
+    else{
+        fprintf(stderr, "Bug na operação binária!\n");
+        return nullptr;
+    }
+    fprintf(stderr, "Bug catastrófico!\n");
+    return nullptr;
 }
 
 TAC* makeIfThen(TAC* code[]){
