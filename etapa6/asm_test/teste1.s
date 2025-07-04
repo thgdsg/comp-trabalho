@@ -2,11 +2,11 @@
 	.text
 	.globl	w
 	.bss
-	.align 4
+	.align 32
 	.type	w, @object
-	.size	w, 4
+	.size	w, 120
 w:
-	.zero	4
+	.zero	120
 	.globl	x
 	.align 4
 	.type	x, @object

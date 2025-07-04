@@ -1,5 +1,5 @@
 // UFRGS - Compiladores - Marcelo Johann - 2025/1 - Exemplo atualizado
-
+// testa principalmente a análise sintática
 byte a = 51;
 byte b = 'x';
 byte c = 001;

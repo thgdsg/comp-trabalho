@@ -1,5 +1,5 @@
 #include <stdio.h>
-int w;
+int w[30];
 int x;
 int z;
 int y;

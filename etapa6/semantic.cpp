@@ -282,7 +282,7 @@ int semanticCheck(AST* nodo){
         // checa número de args
         if (args.size() != f->paramTypes.size()) {
             fprintf(stderr,
-            "Erro semântico: função '%s' espera %zu args, recebeu %zu\n",
+            "Erro semântico: função '%s' espera %zu args, recebeu %zu\n Declare a função antes de chamá-la no código.",
             f->text.c_str(),
             f->paramTypes.size(), args.size());
             semanticErrors++;

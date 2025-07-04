@@ -8,11 +8,10 @@ using namespace std;
 
 string TACTypes[] = {
     "TAC_SYMBOL",
-    "TAC_VAR_ATTR", "TAC_VEC_ATTR", "TAC_FUN_ATTR",
+    "TAC_VAR_ATTR", "TAC_VEC_ATTR",
     "TAC_VAR_LIST", "TAC_PARAM_LIST", "TAC_EXPR_LIST", "TAC_PRINT_LIST",
-    "TAC_CMD_IF", "TAC_CMD_IFELSE", "TAC_CMD_WHILE", "TAC_CMD_DOWHILE",
     "TAC_CMD_ASSIGN", "TAC_CMD_VEC_ASSIGN", "TAC_CMD_READ", "TAC_CMD_PRINT", "TAC_CMD_RETURN",
-    "TAC_VEC", "TAC_FUNCALL",
+    "TAC_VEC_READ", "TAC_FUNCALL",
     "TAC_ADD", "TAC_SUB", "TAC_MUL", "TAC_DIV",
     "TAC_LESS", "TAC_LEQ", "TAC_GREATER", "TAC_GEQ",
     "TAC_EQUAL", "TAC_NEQUAL",
@@ -30,7 +29,7 @@ TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2){
 
 void tacPrintSingle(TAC* tac){
     if (!tac) return;
-    if (tac->tipo == TAC_SYMBOL) return;
+    //if (tac->tipo == TAC_SYMBOL) return;
 
     fprintf(stderr, "TAC: (%s,%s,%s,%s)\n", TACTypes[tac->tipo].c_str(), tac->resultado ? tac->resultado->text.c_str() : "null",
            tac->op1 ? tac->op1->text.c_str() : "null",
@@ -79,13 +78,13 @@ TAC* makeBinaryOp(int type, AST* node, TAC* code[]){
 
     if (type == TAC_ADD || type == TAC_SUB || type == TAC_MUL || type == TAC_DIV){
         if (tipo_op->dataType == DATA_INT)
-            return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(DATA_INT),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+            return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(SYMBOL_ID_INT, DATA_INT),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
         if (tipo_op->dataType == DATA_REAL)
-            return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(DATA_REAL),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+            return tacJoin(tacJoin(code[0],code[1]), tacCreate(type,symbolMakeTemp(SYMBOL_ID_REAL, DATA_REAL),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
     }
     else if (type == TAC_LESS || type == TAC_LEQ || type == TAC_GREATER || type == TAC_GEQ ||
              type == TAC_EQUAL || type == TAC_NEQUAL || type == TAC_AND || type == TAC_OR) {
-        return tacJoin(tacJoin(code[0], code[1]), tacCreate(type, symbolMakeTemp(DATA_BOOL), code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0));
+        return tacJoin(tacJoin(code[0], code[1]), tacCreate(type, symbolMakeTemp(SYMBOL_INVALID, DATA_BOOL), code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0));
     }
     else{
         fprintf(stderr, "Bug na operação binária!\n");
@@ -256,7 +255,7 @@ TAC* makeAssign(TAC* code[], int type, AST* node){
     tacCreate(type, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
     } else if (type == TAC_CMD_VEC_ASSIGN) {
         result = tacJoin(tacJoin(tacJoin(code[0], code[1]), code[2]),
-    tacCreate(type, node->filho[0]->filho[0]->simbolo, code[1] ? code[1]->resultado : 0, code[2] ? code[2]->resultado : 0));
+    tacCreate(type, node->filho[0]->filho[0]->simbolo, code[0] ? code[0]->op2 : 0, code[1] ? code[1]->resultado : 0));
     }
 
     return result;
@@ -293,9 +292,26 @@ TAC* GenerateCode(AST* node){
             result = tacCreate(TAC_SYMBOL,node->simbolo,0,0);
             break;
         case AST_VEC:
-            result = tacJoin(code[0],
-            tacCreate(TAC_VEC, code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0, 0));
+        {
+            // Determina o tipo do elemento do vetor para criar um temporário correto.
+            int elementType = DATA_ID;
+            int elementSymbolType = SYMBOL_INVALID;
+            if (node->filho[0] && node->filho[0]->simbolo) {
+                switch (node->filho[0]->simbolo->type) {
+                    case SYMBOL_ID_INT:  elementType = DATA_INT;  elementSymbolType = SYMBOL_ID_INT;  break;
+                    case SYMBOL_ID_BYTE: elementType = DATA_INT;  elementSymbolType = SYMBOL_ID_BYTE; break; // Trata byte como int
+                    case SYMBOL_ID_REAL: elementType = DATA_REAL; elementSymbolType = SYMBOL_ID_REAL; break;
+                }
+            }
+            
+            SYMBOL* temp = symbolMakeTemp(elementSymbolType, elementType);
+            // Gera uma TAC para ler o valor do vetor[índice] para o temporário.
+            result = tacJoin(
+                tacJoin(code[0], code[1]),
+                tacCreate(TAC_VEC_READ, temp, code[0]->resultado, code[1]->resultado)
+            );
             break;
+        }
         case AST_VAR_ATTR:
             result = makeAttr(code, TAC_VAR_ATTR);
             break;
@@ -325,10 +341,36 @@ TAC* GenerateCode(AST* node){
             result = tacJoin(code[0], 
             tacCreate(TAC_CMD_READ, code[0] ? code[0]->resultado : 0, 0, 0));
             break;
-        case AST_FUNCALL:
+        case AST_FUNCALL:{
+            SYMBOL* funcSymbol = code[0] ? code[0]->resultado : nullptr;
+            if (funcSymbol) {
+                int returnDataType = DATA_ID;
+                int returnType = SYMBOL_INVALID;
+                switch (funcSymbol->type) {
+                    case SYMBOL_ID_INT:
+                        returnDataType = DATA_INT;
+                        returnType = SYMBOL_ID_INT;
+                        break;
+                    case SYMBOL_ID_BYTE:
+                        returnDataType = DATA_INT;
+                        returnType = SYMBOL_ID_BYTE;
+                        break;
+                    case SYMBOL_ID_REAL:
+                        returnDataType = DATA_REAL;
+                        returnType = SYMBOL_ID_REAL;
+                        break;
+                }
+            SYMBOL* tempSymbol = symbolMakeTemp(returnType, returnDataType);
             result = tacJoin(tacJoin(code[0], code[1]),
-            tacCreate(TAC_FUNCALL, symbolMakeTemp(DATA_FUNCTION), code[0] ? code[0]->resultado : 0, 0));
+            tacCreate(TAC_FUNCALL, tempSymbol, funcSymbol, 0));
+            }
+            else {
+                fprintf(stderr, "Warning: Erro ao criar TAC da função! Criando função como INT.\n");
+                result = tacJoin(tacJoin(code[0], code[1]),
+                    tacCreate(TAC_FUNCALL, symbolMakeTemp(SYMBOL_ID_INT, DATA_INT), code[0] ? code[0]->resultado : 0, code[1] ? code[1]->resultado : 0));
+            }
             break;
+            }
         case AST_ADD:
             result = makeBinaryOp(TAC_ADD, node, code);
             break;
@@ -367,7 +409,7 @@ TAC* GenerateCode(AST* node){
             break;
         case AST_NOT:
             result = tacJoin(code[0],
-            tacCreate(TAC_NOT,symbolMakeTemp(DATA_BOOL),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
+            tacCreate(TAC_NOT,symbolMakeTemp(SYMBOL_INVALID, DATA_BOOL),code[0] ? code[0]->resultado : 0 ,code[1] ? code[1]->resultado : 0));
             break;
         case AST_CMD_ASSIGN:
             result = makeAssign(code, TAC_CMD_ASSIGN, nullptr);

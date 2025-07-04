@@ -1,3 +1,4 @@
+// testa a capacidade do compilador de coletar lexemas
 byte x = 'p';
 int y = 'b';
 real z = 100;

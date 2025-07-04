@@ -1,0 +1,26 @@
+// testa a geração de código, sem condicionais
+int x = 01;
+real naosei = 5/2;
+byte y = 552;
+
+byte z[5] = 1,2,3,4,5;
+
+real numeros[3] = 1/2,2/3,3/4;
+real pequeno[1];
+
+real funcaozinha(real retorno, real qqr_coisa){
+	numeros[1] = 5/01;
+	retorno = retorno + qqr_coisa;
+	return retorno;
+}
+
+int main(){
+	print numeros[1];
+	pequeno[0] = numeros[2] * numeros[1];
+	print pequeno[0];
+
+	print naosei;
+	print "escreva um valor real:";
+	read naosei;
+	print "valor novo da variavel: " naosei;
+}
