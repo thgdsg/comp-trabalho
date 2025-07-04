@@ -16,8 +16,8 @@ int func (int h, int j ){
 	x = 9 + 5 / 2;
 	a = 10;
 	b = z[2];
-	z['i'] = 10;
-	print z['l'] "banana" "batata";
+	z[2] = 10;
+	print z[1] "banana" "batata";
 	read a;
 	return a + b + x;
 }

@@ -1,2 +1,26 @@
 // testa a geração de código, com condicionais
-// TODO
+
+int x = 01;
+int y = 0;
+int entrada = 0;
+int retorno = 0;
+
+int multiplica(int quantidade, int contagem){
+    do {
+        if (contagem > 01){
+            print "contagem maior que 10\n";
+            contagem = contagem * contagem;
+        }
+        else{
+            print "contagem menor que 10\n";
+            contagem = contagem * contagem;
+        }
+        quantidade = quantidade - 1;
+    } while (quantidade > 0);
+    return contagem;
+}
+
+int main(){
+	y = multiplica(2, 2);
+    print y;
+}

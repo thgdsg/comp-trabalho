@@ -16,11 +16,11 @@
 using namespace std;
 
 // Mapa para associar literais de string a labels
-static map<string, string> literalLabels; // Um único mapa para todos os literais
+static map<SYMBOL*, string> literalLabels; // Alterado de map<string, string>
 static int nextLiteralLabel = 0;
 
 // num cabeçalho global
-static vector<string> literalOrder;
+static vector<SYMBOL*> literalOrder; // Alterado de vector<string>
 
 // Declara que a tabela de símbolos é externa
 extern map<string, SYMBOL*> SymbolTable;
@@ -30,8 +30,8 @@ string getSymbolAddress(SYMBOL* s) {
     if (!s) return "0";
 
     // 1. Verifica se é um literal que foi armazenado na memória
-    if (literalLabels.count(s->text)) {
-        return literalLabels[s->text] + "(%rip)";
+    if (literalLabels.count(s)) {
+        return literalLabels[s] + "(%rip)";
     }
 
     // 2. Se não foi armazenado, mas é um literal, trata como valor imediato
@@ -55,7 +55,6 @@ void asmReadVector(TAC* tac, FILE* out){
     // Calcula o endereço do elemento e o coloca em %rax
     fprintf(out, "\tleaq\t%s(%%rip), %%rax\n", vecSymbol->text.c_str());
 
-    // CORREÇÃO: Usa a instrução de movimentação correta com base no tipo do vetor.
     if (vecSymbol->type == SYMBOL_ID_BYTE) {
         // Para bytes, move 1 byte e zera o resto do registrador de destino.
         fprintf(out, "\tmovzbl\t(%%rax, %%rcx, 1), %%edx\n");
@@ -117,7 +116,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                 size_in_bytes = 8;
                 break;
             case DATA_BOOL:
-                size_in_bytes = 1;
+                size_in_bytes = 4; 
                 break;
             default:
                 continue;
@@ -155,8 +154,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
         }
     }
 
-    // 2. Declarar vetores (mantém sua lógica existente) …
-    //    (não alterado)
+    // 2. Declarar vetores
     // Percorre as TACs para declarar vetores (com ou sem inicialização)
     for (TAC* tac = first; tac; tac = tac->next) {
         if (tac->tipo == TAC_VEC_ATTR) {
@@ -253,10 +251,10 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
     fprintf(out, ".LC_SCAN_REAL:\n");
     fprintf(out, "\t.string \"%%d/%%d\"\n"); // Formato para ler um real (num/den)
 
-    for (auto const& lit : literalOrder) {
-      const auto &label = literalLabels[lit];
+    for (auto const& s : literalOrder) {
+      const auto &label = literalLabels[s];
+      const auto &lit = s->text;
       fprintf(out, "%s:\n", label.c_str());
-      SYMBOL* s = symbolLookup(const_cast<char*>(lit.c_str()));
 
       // Usa o dataType para escolher a diretiva assembly correta
       switch (s->dataType) {
@@ -399,17 +397,33 @@ void asmGenerateCode(TAC* first, FILE* out) {
                 break;
 
             case TAC_JUMP_FALSE:
-                // Compara o resultado da condição (op1) com 0
-                fprintf(out, "\tcmpl\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
-                // Salta para o LABEL
-                fprintf(out, "\tje\t%s\n", tac->resultado->text.c_str());
+                // Se op1 for nulo, é um salto incondicional (jmp)
+                if (tac->op1 == nullptr) {
+                    fprintf(out, "\t# Salto incondicional para %s\n", tac->resultado->text.c_str());
+                    fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
+                } else {
+                    fprintf(out, "\t# Salto condicional para %s\n", tac->resultado->text.c_str());
+                    // Caso contrário, é um salto condicional (jne)
+                    // Compara o resultado da condição (op1) com 0
+                    fprintf(out, "\tcmpl\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
+                    // Salta para o LABEL
+                    fprintf(out, "\tje\t%s\n", tac->resultado->text.c_str());
+                }
                 break;
 
             case TAC_JUMP_TRUE:
-                // Compara o resultado da condição (op1) com 0
-                fprintf(out, "\tcmpl\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
-                // Salta para o LABEL
-                fprintf(out, "\tjne\t%s\n", tac->resultado->text.c_str());
+                // Se op1 for nulo, é um salto incondicional (jmp)
+                if (tac->op1 == nullptr) {
+                    fprintf(out, "\t# Salto incondicional para %s\n", tac->resultado->text.c_str());
+                    fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
+                } else {
+                    fprintf(out, "\t# Salto condicional para %s\n", tac->resultado->text.c_str());
+                    // Caso contrário, é um salto condicional (jne)
+                    // Compara o resultado da condição (op1) com 0
+                    fprintf(out, "\tcmpl\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
+                    // Salta para o LABEL
+                    fprintf(out, "\tjne\t%s\n", tac->resultado->text.c_str());
+                }
                 break;
 
             case TAC_ADD:
@@ -955,9 +969,10 @@ void asmGenerate(TAC* tac, FILE* out) {
     for (TAC* t = first; t; t = t->next) {
         auto processSymbol = [&](SYMBOL* s) {
             if (s && (s->type == SYMBOL_INT || s->type == SYMBOL_REAL || s->type == SYMBOL_CHAR || s->type == SYMBOL_STRING)) {
-                if (literalLabels.find(s->text) == literalLabels.end()) {
-                    literalLabels[s->text] = ".LIT" + to_string(nextLiteralLabel++);
-                    literalOrder.push_back(s->text);
+                // Sempre cria um novo literal para cada ponteiro de símbolo
+                if (literalLabels.find(s) == literalLabels.end()) {
+                    literalLabels[s] = ".LIT" + to_string(nextLiteralLabel++);
+                    literalOrder.push_back(s);
                 }
             }
         };
