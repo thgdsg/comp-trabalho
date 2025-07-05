@@ -16,11 +16,11 @@
 using namespace std;
 
 // Mapa para associar literais de string a labels
-static map<SYMBOL*, string> literalLabels; // Alterado de map<string, string>
+static map<string, string> literalLabels; // Um único mapa para todos os literais
 static int nextLiteralLabel = 0;
 
 // num cabeçalho global
-static vector<SYMBOL*> literalOrder; // Alterado de vector<string>
+static vector<string> literalOrder;
 
 // Declara que a tabela de símbolos é externa
 extern map<string, SYMBOL*> SymbolTable;
@@ -30,8 +30,8 @@ string getSymbolAddress(SYMBOL* s) {
     if (!s) return "0";
 
     // 1. Verifica se é um literal que foi armazenado na memória
-    if (literalLabels.count(s)) {
-        return literalLabels[s] + "(%rip)";
+    if (literalLabels.count(s->text)) {
+        return literalLabels[s->text] + "(%rip)";
     }
 
     // 2. Se não foi armazenado, mas é um literal, trata como valor imediato
@@ -55,6 +55,7 @@ void asmReadVector(TAC* tac, FILE* out){
     // Calcula o endereço do elemento e o coloca em %rax
     fprintf(out, "\tleaq\t%s(%%rip), %%rax\n", vecSymbol->text.c_str());
 
+    // CORREÇÃO: Usa a instrução de movimentação correta com base no tipo do vetor.
     if (vecSymbol->type == SYMBOL_ID_BYTE) {
         // Para bytes, move 1 byte e zera o resto do registrador de destino.
         fprintf(out, "\tmovzbl\t(%%rax, %%rcx, 1), %%edx\n");
@@ -116,7 +117,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                 size_in_bytes = 8;
                 break;
             case DATA_BOOL:
-                size_in_bytes = 4; 
+                size_in_bytes = 1;
                 break;
             default:
                 continue;
@@ -154,7 +155,8 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
         }
     }
 
-    // 2. Declarar vetores
+    // 2. Declarar vetores (mantém sua lógica existente) …
+    //    (não alterado)
     // Percorre as TACs para declarar vetores (com ou sem inicialização)
     for (TAC* tac = first; tac; tac = tac->next) {
         if (tac->tipo == TAC_VEC_ATTR) {
@@ -251,10 +253,10 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
     fprintf(out, ".LC_SCAN_REAL:\n");
     fprintf(out, "\t.string \"%%d/%%d\"\n"); // Formato para ler um real (num/den)
 
-    for (auto const& s : literalOrder) {
-      const auto &label = literalLabels[s];
-      const auto &lit = s->text;
-      fprintf(out, "%s:\n", label.c_str());
+    for (auto const& lit : literalOrder) {
+      const auto &label = literalLabels[lit];
+      fprintf(out, "\t.globl %s\n", label.c_str());
+      SYMBOL* s = symbolLookup(const_cast<char*>(lit.c_str()));
 
       // Usa o dataType para escolher a diretiva assembly correta
       switch (s->dataType) {
@@ -263,40 +265,46 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
               if (s->type == SYMBOL_CHAR) {
                   // Extrai o caractere (ex: de "'a'" para 'a') e obtém seu valor ASCII
                   fprintf(out, "\t.align 4\n");
-                  fprintf(out, "\t.long %d\n", (int)lit[1]);
+                  fprintf(out, "%s:\n", label.c_str());
+                  fprintf(out, "\t.long %d\n", (int)s->text[1]);
               } else {
-                  // Se for um inteiro normal, apenas imprime o valor
+                  // Se for um inteiro normal, imprime o valor do símbolo
                   fprintf(out, "\t.align 4\n");
-                  fprintf(out, "\t.long %s\n", lit.c_str());
+                  fprintf(out, "%s:\n", label.c_str());
+                  fprintf(out, "\t.long %s\n", s->text.c_str());
               }
               break;
           case DATA_REAL:
           {
-              // Divide o literal real "numerador/denominador" em duas partes
-              size_t slash_pos = lit.find('/');
+              const std::string& real_lit = s->text;
+              size_t slash_pos = real_lit.find('/');
               string numerator = "0";
               string denominator = "1";
 
               if (slash_pos != string::npos) {
-                  numerator = lit.substr(0, slash_pos);
-                  denominator = lit.substr(slash_pos + 1);
+                  numerator = real_lit.substr(0, slash_pos);
+                  denominator = real_lit.substr(slash_pos + 1);
               } else {
                   // Adiciona um aviso se o formato não for o esperado
-                  fprintf(stderr, "Warning: literal REAL '%s' possui um formato inesperado. Considerando como 0/1.\n", lit.c_str());
+                  fprintf(stderr, "Warning: literal REAL '%s' possui um formato inesperado. Considerando como 0/1.\n", real_lit.c_str());
               }
 
               fprintf(out, "\t.align 4\n");
+              fprintf(out, "%s:\n", label.c_str());
               fprintf(out, "\t.long %s\n", numerator.c_str());
               fprintf(out, "\t.long %s\n", denominator.c_str());
               break;
           }
           case DATA_STRING:
               // A diretiva .string é para literais de texto
-              fprintf(out, "\t.string %s\n", lit.c_str());
+              // CORREÇÃO: Usa s->text para obter a string correta
+              fprintf(out, "%s:\n", label.c_str());
+              fprintf(out, "\t.string %s\n", s->text.c_str());
               break;
           default:
-              fprintf(stderr, "Warning: Literal '%s' with unknown dataType %d. Treating as string.\n", lit.c_str(), s->dataType);
-              fprintf(out, "\t.string %s\n", lit.c_str());
+              fprintf(stderr, "Warning: Literal '%s' with unknown dataType %d. Treating as string.\n", s->text.c_str(), s->dataType);
+              fprintf(out, "%s:\n", label.c_str());
+              fprintf(out, "\t.string %s\n", s->text.c_str());
               break;
       }
     }
@@ -323,7 +331,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     }
                     p_node = p_node->next;
                 }
-                // A lista de TACs está invertida, então revertemos para a ordem correta dos argumentos.
+
                 std::reverse(params.begin(), params.end());
 
                 // 2. Mover argumentos dos registradores para as variáveis globais correspondentes.
@@ -403,10 +411,11 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
                 } else {
                     fprintf(out, "\t# Salto condicional para %s\n", tac->resultado->text.c_str());
-                    // Caso contrário, é um salto condicional (jne)
-                    // Compara o resultado da condição (op1) com 0
-                    fprintf(out, "\tcmpl\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
-                    // Salta para o LABEL
+                    // Carrega o valor da condição (op1) para um registrador
+                    fprintf(out, "\tmovzbl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
+                    // Compara o registrador com 0
+                    fprintf(out, "\ttestl\t%%eax, %%eax\n");
+                    // Salta para o LABEL se o resultado for zero (false)
                     fprintf(out, "\tje\t%s\n", tac->resultado->text.c_str());
                 }
                 break;
@@ -418,10 +427,11 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
                 } else {
                     fprintf(out, "\t# Salto condicional para %s\n", tac->resultado->text.c_str());
-                    // Caso contrário, é um salto condicional (jne)
-                    // Compara o resultado da condição (op1) com 0
-                    fprintf(out, "\tcmpl\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
-                    // Salta para o LABEL
+                    // Carrega o valor da condição (op1) para um registrador
+                    fprintf(out, "\tmovzbl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
+                    // Compara o registrador com 0
+                    fprintf(out, "\ttestl\t%%eax, %%eax\n");
+                    // Salta para o LABEL se o resultado for não-zero (true)
                     fprintf(out, "\tjne\t%s\n", tac->resultado->text.c_str());
                 }
                 break;
@@ -442,7 +452,8 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\taddl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\taddl\t%%edx, %%eax\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
@@ -463,7 +474,8 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tsubl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tsubl\t%%edx, %%eax\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
@@ -501,8 +513,9 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovl\t%s, %%ecx\n", getSymbolAddress(tac->op2).c_str());
                     fprintf(out, "\tcltd\n");
-                    fprintf(out, "\tidivl\t%s\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tidivl\t%%ecx\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
@@ -518,14 +531,13 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetl\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tcmpl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
                     fprintf(out, "\tsetl\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
             
@@ -540,14 +552,13 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetg\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tcmpl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
                     fprintf(out, "\tsetg\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
             
@@ -562,14 +573,13 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsete\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tcmpl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
                     fprintf(out, "\tsete\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
 
@@ -584,14 +594,13 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetne\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tcmpl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
                     fprintf(out, "\tsetne\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
 
@@ -606,14 +615,13 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetge\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tcmpl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
                     fprintf(out, "\tsetge\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
 
@@ -628,14 +636,13 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetle\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\tcmpl\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
                     fprintf(out, "\tsetle\t%%al\n");
-                    fprintf(out, "\tmovzbl\t%%al, %%eax\n");
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
 
@@ -732,10 +739,12 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     }
                     current = current->prev;
                 }
+
                 // A lista de argumentos está agora na ordem correta para os registradores (arg1, arg2, ...)
 
                 // 2. Carregar argumentos nos registradores de acordo com a convenção x86-64.
                 const char* arg_regs_32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
+                const char* arg_regs_8[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
                 size_t arg_reg_idx = 0;
 
                 fprintf(out, "\t# Preparando argumentos para a chamada de %s\n", tac->op1->text.c_str());
@@ -755,9 +764,9 @@ void asmGenerateCode(TAC* first, FILE* out) {
                         fprintf(out, "\tmovl\t4+%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_32[arg_reg_idx + 1]);
                         arg_reg_idx += 2;
                     } else if (arg->type == SYMBOL_ID_BYTE) {
-                        fprintf(out, "\tmovzbl\t%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_32[arg_reg_idx]);
+                        fprintf(out, "\tmovzbl\t%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_8[arg_reg_idx]);
                         arg_reg_idx++;
-                    } else { // INT
+                    } else{ // INT
                         fprintf(out, "\tmovl\t%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_32[arg_reg_idx]);
                         arg_reg_idx++;
                     }
@@ -969,10 +978,9 @@ void asmGenerate(TAC* tac, FILE* out) {
     for (TAC* t = first; t; t = t->next) {
         auto processSymbol = [&](SYMBOL* s) {
             if (s && (s->type == SYMBOL_INT || s->type == SYMBOL_REAL || s->type == SYMBOL_CHAR || s->type == SYMBOL_STRING)) {
-                // Sempre cria um novo literal para cada ponteiro de símbolo
-                if (literalLabels.find(s) == literalLabels.end()) {
-                    literalLabels[s] = ".LIT" + to_string(nextLiteralLabel++);
-                    literalOrder.push_back(s);
+                if (literalLabels.find(s->text) == literalLabels.end()) {
+                    literalLabels[s->text] = "LIT" + to_string(nextLiteralLabel++);
+                    literalOrder.push_back(s->text);
                 }
             }
         };
@@ -989,4 +997,3 @@ void asmGenerate(TAC* tac, FILE* out) {
     asmGenerateCode(first, out);
     fprintf(stderr, "Arquivo ASM gerado!\n");
 }
-

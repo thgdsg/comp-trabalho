@@ -165,14 +165,14 @@ TAC* makeWhile(TAC* code[]){
 
 TAC* makeDoWhile(TAC* code[]){
     SYMBOL* startLabel = symbolMakeLabel();
-    // SYMBOL* endLabel = symbolMakeLabel(); // Not strictly necessary for do-while's basic form
+    // SYMBOL* endLabel = symbolMakeLabel();
 
     TAC* bodyCode = code[0];
     TAC* conditionCode = code[1];
 
     TAC* startLabelTac = tacCreate(TAC_LABEL, startLabel, nullptr, nullptr);
     TAC* jumpTrueToStart = tacCreate(TAC_JUMP_TRUE, startLabel, conditionCode ? conditionCode->resultado : nullptr, nullptr);
-    // TAC* endLabelTac = tacCreate(TAC_LABEL, endLabel, nullptr, nullptr); // If an end label is desired
+    // TAC* endLabelTac = tacCreate(TAC_LABEL, endLabel, nullptr, nullptr);
 
     // Encadeia as TACs:
     // 1. Label de início do loop

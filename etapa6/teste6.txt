@@ -2,25 +2,29 @@
 
 int x = 01;
 int y = 0;
-int entrada = 0;
-int retorno = 0;
-
-int multiplica(int quantidade, int contagem){
-    do {
-        if (contagem > 01){
-            print "contagem maior que 10\n";
-            contagem = contagem * contagem;
-        }
-        else{
-            print "contagem menor que 10\n";
-            contagem = contagem * contagem;
-        }
-        quantidade = quantidade - 1;
-    } while (quantidade > 0);
-    return contagem;
-}
+int aux = 2;
 
 int main(){
-	y = multiplica(2, 2);
+    x = 5;
+	y = multiplica(21, 2);
     print y;
+}
+
+int multiplica(int quantidade, int valor){
+    print "valor da variavel quantidade antes do while loop: " quantidade "\n";
+    do {
+        if (valor > 05){
+            valor = valor * aux;
+            print "valor atingido: " valor "\n";
+            print "valor maior que 50\n";
+        }
+        else{
+            valor = valor * aux;
+        }
+        print "valor da variavel quantidade no loop: " quantidade "\n";
+        quantidade = quantidade + 1;
+    } while (quantidade < 51);
+    print "valor da variavel quantidade depois do loop: " quantidade "\n";
+    print "valor atingido: " valor "\n";
+    return valor;
 }

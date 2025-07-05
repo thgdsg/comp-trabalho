@@ -3,7 +3,7 @@
 	.globl _temp0
 	.align 4
 _temp0:
-	.space 4
+	.space 1
 	.globl _temp1
 	.align 4
 _temp1:
@@ -19,27 +19,23 @@ _temp3:
 	.globl _temp4
 	.align 4
 _temp4:
-	.space 4
+	.space 1
 	.globl _temp5
 	.align 4
 _temp5:
 	.space 4
-	.globl contagem
+	.globl aux
 	.align 4
-contagem:
-	.space 4
-	.globl entrada
-	.align 4
-entrada:
-	.long 0
+aux:
+	.long 2
 	.globl quantidade
 	.align 4
 quantidade:
 	.space 4
-	.globl retorno
+	.globl valor
 	.align 4
-retorno:
-	.long 0
+valor:
+	.space 4
 	.globl x
 	.align 4
 x:
@@ -62,22 +58,56 @@ y:
 	.string "%d"
 .LC_SCAN_REAL:
 	.string "%d/%d"
-.LIT0:
+	.globl LIT0
 	.align 4
+LIT0:
 	.long 10
-.LIT1:
+	.globl LIT1
 	.align 4
+LIT1:
 	.long 0
-.LIT2:
-	.string "contagem maior que 10\n"
-.LIT3:
-	.string "contagem menor que 10\n"
-.LIT4:
+	.globl LIT2
 	.align 4
-	.long 1
-.LIT5:
-	.align 4
+LIT2:
 	.long 2
+	.globl LIT3
+LIT3:
+	.string "valor da variavel quantidade antes do while loop: "
+	.globl LIT4
+LIT4:
+	.string "\n"
+	.globl LIT5
+	.align 4
+LIT5:
+	.long 50
+	.globl LIT6
+LIT6:
+	.string "valor atingido: "
+	.globl LIT7
+LIT7:
+	.string "valor maior que 50\n"
+	.globl LIT8
+LIT8:
+	.string "valor da variavel quantidade no loop: "
+	.globl LIT9
+	.align 4
+LIT9:
+	.long 1
+	.globl LIT10
+	.align 4
+LIT10:
+	.long 15
+	.globl LIT11
+LIT11:
+	.string "valor da variavel quantidade depois do loop: "
+	.globl LIT12
+	.align 4
+LIT12:
+	.long 5
+	.globl LIT13
+	.align 4
+LIT13:
+	.long 12
 	.section .text
 	.globl main
 multiplica:
@@ -85,59 +115,132 @@ multiplica:
 	movq %rsp, %rbp
 	# Movendo argumento 1 (quantidade) do registrador para a variavel global
 	movl	%edi, quantidade(%rip)
-	# Movendo argumento 2 (contagem) do registrador para a variavel global
-	movl	%esi, contagem(%rip)
-_label2:
-	movl	contagem(%rip), %eax
-	cmpl	.LIT0(%rip), %eax
-	setg	%al
-	movzbl	%al, %eax
-	movl	%eax, _temp0(%rip)
-	# Salto condicional para _label0
-	cmpl	$0, _temp0(%rip)
-	je	_label0
-	# Imprimindo valor: "contagem maior que 10\n"
+	# Movendo argumento 2 (valor) do registrador para a variavel global
+	movl	%esi, valor(%rip)
+	# Imprimindo valor: "valor da variavel quantidade antes do while loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	.LIT2(%rip), %rsi
+	leaq	LIT3(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-	movl	contagem(%rip), %eax
-	imull	contagem(%rip), %eax
+	# Imprimindo valor: quantidade
+	movl	quantidade(%rip), %esi
+	leaq	.LC_INT(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT4(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+_label2:
+	movl	valor(%rip), %eax
+	movl	LIT5(%rip), %edx
+	cmpl	%edx, %eax
+	setg	%al
+	movb	%al, _temp0(%rip)
+	# Salto condicional para _label0
+	movzbl	_temp0(%rip), %eax
+	testl	%eax, %eax
+	je	_label0
+	movl	valor(%rip), %eax
+	imull	aux(%rip), %eax
 	movl	%eax, _temp1(%rip)
 	# Atribuição INT
 	movl	_temp1(%rip), %eax
-	movl	%eax, contagem(%rip)
+	movl	%eax, valor(%rip)
+	# Imprimindo valor: "valor atingido: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT6(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: valor
+	movl	valor(%rip), %esi
+	leaq	.LC_INT(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT4(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "valor maior que 50\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT7(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Salto incondicional para _label1
 	jmp	_label1
 _label0:
-	# Imprimindo valor: "contagem menor que 10\n"
-	leaq	.LC_STRING(%rip), %rdi
-	leaq	.LIT3(%rip), %rsi
-	movl	$0, %eax
-	call	printf@PLT
-	movl	contagem(%rip), %eax
-	imull	contagem(%rip), %eax
+	movl	valor(%rip), %eax
+	imull	aux(%rip), %eax
 	movl	%eax, _temp2(%rip)
 	# Atribuição INT
 	movl	_temp2(%rip), %eax
-	movl	%eax, contagem(%rip)
+	movl	%eax, valor(%rip)
 _label1:
+	# Imprimindo valor: "valor da variavel quantidade no loop: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT8(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: quantidade
+	movl	quantidade(%rip), %esi
+	leaq	.LC_INT(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT4(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	movl	quantidade(%rip), %eax
-	subl	.LIT4(%rip), %eax
+	movl	LIT9(%rip), %edx
+	addl	%edx, %eax
 	movl	%eax, _temp3(%rip)
 	# Atribuição INT
 	movl	_temp3(%rip), %eax
 	movl	%eax, quantidade(%rip)
 	movl	quantidade(%rip), %eax
-	cmpl	.LIT1(%rip), %eax
-	setg	%al
-	movzbl	%al, %eax
-	movl	%eax, _temp4(%rip)
+	movl	LIT10(%rip), %edx
+	cmpl	%edx, %eax
+	setl	%al
+	movb	%al, _temp4(%rip)
 	# Salto condicional para _label2
-	cmpl	$0, _temp4(%rip)
+	movzbl	_temp4(%rip), %eax
+	testl	%eax, %eax
 	jne	_label2
+	# Imprimindo valor: "valor da variavel quantidade depois do loop: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT11(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: quantidade
+	movl	quantidade(%rip), %esi
+	leaq	.LC_INT(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT4(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "valor atingido: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT6(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: valor
+	movl	valor(%rip), %esi
+	leaq	.LC_INT(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT4(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Retornando INT
-	movl	contagem(%rip), %eax
+	movl	valor(%rip), %eax
 	leave
 	ret
 	leave
@@ -145,9 +248,12 @@ _label1:
 main:
 	pushq %rbp
 	movq %rsp, %rbp
+	# Atribuição INT
+	movl	LIT12(%rip), %eax
+	movl	%eax, x(%rip)
 	# Preparando argumentos para a chamada de multiplica
-	movl	.LIT5(%rip), %edi
-	movl	.LIT5(%rip), %esi
+	movl	LIT13(%rip), %edi
+	movl	LIT2(%rip), %esi
 	call	multiplica
 	# Armazenando valor de retorno de multiplica em _temp5
 	movl	%eax, _temp5(%rip)
