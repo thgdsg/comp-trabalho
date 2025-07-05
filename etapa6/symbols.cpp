@@ -23,8 +23,10 @@ SYMBOL *symbolInsert(int type, int dataType, char* text){
     if (it != SymbolTable.end()) {
         // se achar mas tipo for inválido, remove e cria símbolo novo
         if (it->second->type == SYMBOL_INVALID) {
-            delete it->second;
-            SymbolTable.erase(it);
+            // símbolo já existe, porém foi declarado sem sabermos o tipo dele
+            it->second->type = type;
+            it->second->dataType = dataType;
+            return it->second;
         }
         else {
             // se já existe e datatype ainda não foi atribuído

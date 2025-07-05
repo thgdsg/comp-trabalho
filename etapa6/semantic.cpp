@@ -11,22 +11,29 @@ int semanticErrors = 0;
 extern string ASTTypeNames[];
 using namespace std;
 
-// Wrapper for two-pass semantic analysis
+/*
+"AST_UNKNOWN",
+    "AST_SYMBOL",
+    "AST_DEF",
+    "AST_VAR_ATTR", "AST_VEC_ATTR", "AST_FUN_ATTR",
+    "AST_VAR_LIST", "AST_PARAM_LIST", "AST_EXPR_LIST", "AST_PRINT_LIST", "AST_CMD_LIST",
+    "AST_CMD_IF", "AST_CMD_IFELSE", "AST_CMD_WHILE", "AST_CMD_DOWHILE",
+    "AST_CMD_ASSIGN", "AST_CMD_VEC_ASSIGN", "AST_CMD_READ", "AST_CMD_PRINT", "AST_CMD_RETURN", 
+    "AST_BLOCKCMD",
+    "AST_VEC", "AST_FUNCALL",
+    "AST_ADD", "AST_SUB", "AST_MUL", "AST_DIV",
+    "AST_LESS", "AST_LEQ", "AST_GREATER", "AST_GEQ",
+    "AST_EQUAL", "AST_NEQUAL",
+    "AST_AND", "AST_OR",
+    "AST_NOT",
+*/
+
 int semanticCheck(AST* nodo) {
     if (!nodo) return 0;
-    semanticErrors = 0;
-    fprintf(stderr, "------------------------------------------------------------------\n");
-    fprintf(stderr, "tabela de símbolos antes da primeira passada:\n");
-    symbolPrintTable();
-    astPrint(nodo, 0);
-    semanticCheck2Passadas(nodo, 1); // First pass
-    fprintf(stderr, "------------------------------------------------------------------\n");
-    fprintf(stderr, "tabela de símbolos após primeira passada:\n");
-    symbolPrintTable();
-    semanticCheck2Passadas(nodo, 2); // Second pass
-    fprintf(stderr, "------------------------------------------------------------------\n");
-    fprintf(stderr, "tabela de símbolos após segunda passada:\n");
-    symbolPrintTable();
+
+    semanticErrors += semanticCheck2Passadas(nodo, 1); // primeira passada
+    semanticErrors += semanticCheck2Passadas(nodo, 2); // segunda passada
+
     return semanticErrors;
 }
 
@@ -193,10 +200,10 @@ int semanticCheck2Passadas(AST* nodo, int pass){
               f = symbolInsert(SYMBOL_ID_BYTE, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
           }
           nodo->filho[0]->simbolo = f;
-          fprintf(stderr,"[semanticCheck] declarando função %s\n",f->text.c_str());
+          //fprintf(stderr,"[semanticCheck] declarando função %s\n",f->text.c_str());
           // agora coleta parâmetros, mapeando o type -> dataType
           if (nodo->filho.size() > 2) {
-            fprintf(stderr,"[semanticCheck] coletando parâmetros da função %s\n",f->text.c_str());
+            //fprintf(stderr,"[semanticCheck] coletando parâmetros da função %s\n",f->text.c_str());
               f->paramTypes.clear();
               // percorre a lista de parâmetros e rein­sere cada símbolo
               function<void(AST*)> collectParam = [&](AST* p){
@@ -230,7 +237,7 @@ int semanticCheck2Passadas(AST* nodo, int pass){
 
         if (pass == 2) {
           SYMBOL* f = nodo->filho[0]->simbolo;
-          fprintf(stderr,"[semanticCheck] vendo return da função %s\n",f->text.c_str());
+          //fprintf(stderr,"[semanticCheck] vendo return da função %s\n",f->text.c_str());
           // verifica pelo comando return dentro do corpo
           AST* body = (nodo->filho.size() >= 3 ? nodo->filho[2] : nullptr);
           bool foundReturn = false;
