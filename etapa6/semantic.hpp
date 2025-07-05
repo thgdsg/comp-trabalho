@@ -16,5 +16,6 @@ extern int semanticErrors;
 
 int semanticCheck(AST* nodo);
 int getDataType(AST* expr);
+int semanticCheck2Passadas(AST* nodo, int pass);
 
 #endif

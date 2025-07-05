@@ -11,69 +11,76 @@ int semanticErrors = 0;
 extern string ASTTypeNames[];
 using namespace std;
 
-/*
-"AST_UNKNOWN",
-    "AST_SYMBOL",
-    "AST_DEF",
-    "AST_VAR_ATTR", "AST_VEC_ATTR", "AST_FUN_ATTR",
-    "AST_VAR_LIST", "AST_PARAM_LIST", "AST_EXPR_LIST", "AST_PRINT_LIST", "AST_CMD_LIST",
-    "AST_CMD_IF", "AST_CMD_IFELSE", "AST_CMD_WHILE", "AST_CMD_DOWHILE",
-    "AST_CMD_ASSIGN", "AST_CMD_VEC_ASSIGN", "AST_CMD_READ", "AST_CMD_PRINT", "AST_CMD_RETURN", 
-    "AST_BLOCKCMD",
-    "AST_VEC", "AST_FUNCALL",
-    "AST_ADD", "AST_SUB", "AST_MUL", "AST_DIV",
-    "AST_LESS", "AST_LEQ", "AST_GREATER", "AST_GEQ",
-    "AST_EQUAL", "AST_NEQUAL",
-    "AST_AND", "AST_OR",
-    "AST_NOT",
-*/
+// Wrapper for two-pass semantic analysis
+int semanticCheck(AST* nodo) {
+    if (!nodo) return 0;
+    semanticErrors = 0;
+    fprintf(stderr, "------------------------------------------------------------------\n");
+    fprintf(stderr, "tabela de símbolos antes da primeira passada:\n");
+    symbolPrintTable();
+    astPrint(nodo, 0);
+    semanticCheck2Passadas(nodo, 1); // First pass
+    fprintf(stderr, "------------------------------------------------------------------\n");
+    fprintf(stderr, "tabela de símbolos após primeira passada:\n");
+    symbolPrintTable();
+    semanticCheck2Passadas(nodo, 2); // Second pass
+    fprintf(stderr, "------------------------------------------------------------------\n");
+    fprintf(stderr, "tabela de símbolos após segunda passada:\n");
+    symbolPrintTable();
+    return semanticErrors;
+}
 
-int semanticCheck(AST* nodo){
+int semanticCheck2Passadas(AST* nodo, int pass){
   if (!nodo) return semanticErrors;
   // debug: qual nó está sendo verificado
   //fprintf(stderr,"[semanticCheck] tipo=%d filhos=%zu\n",nodo->tipo, nodo->filho.size());
 
   switch(nodo->tipo){
     case AST_SYMBOL:{
-        // verifica se o símbolo existe na tabela de símbolos
-        SYMBOL* s = symbolLookup(const_cast<char*>(nodo->simbolo->text.c_str()));
-        if (s->type == SYMBOL_INVALID){
-            fprintf(stderr, "Erro semântico: variável %s não declarada\n", nodo->simbolo->text.c_str());
-            semanticErrors++;
-        }
+        if (pass == 1) {
+          // verifica se o símbolo existe na tabela de símbolos
+          SYMBOL* s = symbolLookup(const_cast<char*>(nodo->simbolo->text.c_str()));
+            if (s->type == SYMBOL_INVALID){
+                fprintf(stderr, "Erro semântico: variável %s não declarada\n", nodo->simbolo->text.c_str());
+                semanticErrors++;
+            }
+          }
         break;
       }
       case AST_VAR_ATTR:{
-        // verifica se já passou por essa variável
-        if (nodo->filho[0]->simbolo->dataType != DATA_ID){
-                fprintf(stderr, "Erro semântico: variável %s já declarada\n", nodo->filho[0]->simbolo->text.c_str());
-                semanticErrors++;
-        }
-        else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_INT){
-            nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_INT, DATA_INT, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
-        }
-        else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_REAL){
-            nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_REAL, DATA_REAL, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
-        }
-        else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_BYTE){
-            nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_BYTE, DATA_INT, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
-        }
+        if (pass == 1) {
+          // verifica se já passou por essa variável
+          if (nodo->filho[0]->simbolo->dataType != DATA_ID){
+                  fprintf(stderr, "Erro semântico: variável %s já declarada\n", nodo->filho[0]->simbolo->text.c_str());
+                  semanticErrors++;
+          }
+          else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_INT){
+              nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_INT, DATA_INT, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+          }
+          else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_REAL){
+              nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_REAL, DATA_REAL, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+          }
+          else if (nodo->filho[0]->simbolo->type == SYMBOL_ID_BYTE){
+              nodo->filho[0]->simbolo = symbolInsert(SYMBOL_ID_BYTE, DATA_INT, const_cast<char*>(nodo->filho[0]->simbolo->text.c_str()));
+          }
 
-        if (nodo->filho[0]->simbolo->dataType == DATA_INT){
-            if (nodo->filho[1]->simbolo->dataType != DATA_INT){
-                fprintf(stderr, "Erro semântico: variável %s não é do tipo inteiro\n", nodo->filho[0]->simbolo->text.c_str());
-                semanticErrors++;
-            }
-        }
-        else if (nodo->filho[0]->simbolo->dataType == DATA_REAL){
-            if (nodo->filho[1]->simbolo->dataType != DATA_REAL){
-                fprintf(stderr, "Erro semântico: variável %s não é do tipo real\n", nodo->filho[0]->simbolo->text.c_str());
-                semanticErrors++;
-            }
+          if (nodo->filho[0]->simbolo->dataType == DATA_INT){
+              if (nodo->filho[1]->simbolo->dataType != DATA_INT){
+                  fprintf(stderr, "Erro semântico: variável %s não é do tipo inteiro\n", nodo->filho[0]->simbolo->text.c_str());
+                  semanticErrors++;
+              }
+          }
+          else if (nodo->filho[0]->simbolo->dataType == DATA_REAL){
+              if (nodo->filho[1]->simbolo->dataType != DATA_REAL){
+                  fprintf(stderr, "Erro semântico: variável %s não é do tipo real\n", nodo->filho[0]->simbolo->text.c_str());
+                  semanticErrors++;
+              }
+          }
         }
         break;
       }
       case AST_VEC_ATTR:{
+        if (pass == 1) {
         if (nodo->filho[0]->simbolo->dataType != DATA_ID){
                 fprintf(stderr, "Erro semântico: variável %s já declarada\n", nodo->filho[0]->simbolo->text.c_str());
                 semanticErrors++;
@@ -165,93 +172,104 @@ int semanticCheck(AST* nodo){
                 semanticErrors++;
             }
         }
+        }
         break;
       }
       case AST_FUN_ATTR:{
-        // filho[0] = AST_SYMBOL da função, pra deixar mais legível
-        SYMBOL* f = nodo->filho[0]->simbolo;
-        if (f->dataType != DATA_ID){
-                fprintf(stderr, "Erro semântico: função %s já declarada\n", f->text.c_str());
-                semanticErrors++;
-            }
-        else if (f->type == SYMBOL_ID_INT){
-            f = symbolInsert(SYMBOL_ID_INT, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
-        }
-        else if (f->type == SYMBOL_ID_REAL){
-            f = symbolInsert(SYMBOL_ID_REAL, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
-        }
-        else if (f->type == SYMBOL_ID_BYTE) {
-            f = symbolInsert(SYMBOL_ID_BYTE, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
-        }
-        // agora coleta parâmetros, mapeando o type -> dataType
-        if (nodo->filho.size() >= 2) {
-            f->paramTypes.clear();
-            // percorre a lista de parâmetros e rein­sere cada símbolo
-            function<void(AST*)> collectParam = [&](AST* p){
-                if (!p) return;
-                auto& C = p->filho;
-                if (p->tipo == AST_PARAM_LIST) {
-                    if (C.size()>0) collectParam(C[0]);
-                    if (C.size()>1) collectParam(C[1]);
-                }
-                else if (p->tipo == AST_SYMBOL) {
-                    // pega o tipo ID (SYMBOL_ID_*) e o texto
-                    int  symType = p->simbolo->type;
-                    auto name   = p->simbolo->text.c_str();
-                    // determina o dataType correspondente
-                    int dt;
-                    switch(symType) {
-                      case SYMBOL_ID_INT:  dt = DATA_INT;  break;
-                      case SYMBOL_ID_REAL: dt = DATA_REAL; break;
-                      case SYMBOL_ID_BYTE: dt = DATA_INT; break;
-                      default:             dt = DATA_ID;   break;
-                    }
-                    // reinsere para atualizar dataType
-                    SYMBOL* news = symbolInsert(symType, dt, const_cast<char*>(name));
-                    p->simbolo = news;
-                    f->paramTypes.push_back(dt);
-                }
-            };
-            collectParam(nodo->filho[1]);
+        if (pass == 1) {
+          // filho[0] = AST_SYMBOL da função, pra deixar mais legível
+          SYMBOL* f = nodo->filho[0]->simbolo;
+          if (f->dataType != DATA_ID){
+                  fprintf(stderr, "Erro semântico: função %s já declarada\n", f->text.c_str());
+                  semanticErrors++;
+              }
+          else if (f->type == SYMBOL_ID_INT){
+              f = symbolInsert(SYMBOL_ID_INT, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
+          }
+          else if (f->type == SYMBOL_ID_REAL){
+              f = symbolInsert(SYMBOL_ID_REAL, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
+          }
+          else if (f->type == SYMBOL_ID_BYTE) {
+              f = symbolInsert(SYMBOL_ID_BYTE, DATA_FUNCTION, const_cast<char*>(f->text.c_str()));
+          }
+          nodo->filho[0]->simbolo = f;
+          fprintf(stderr,"[semanticCheck] declarando função %s\n",f->text.c_str());
+          // agora coleta parâmetros, mapeando o type -> dataType
+          if (nodo->filho.size() > 2) {
+            fprintf(stderr,"[semanticCheck] coletando parâmetros da função %s\n",f->text.c_str());
+              f->paramTypes.clear();
+              // percorre a lista de parâmetros e rein­sere cada símbolo
+              function<void(AST*)> collectParam = [&](AST* p){
+                  if (!p) return;
+                  auto& C = p->filho;
+                  if (p->tipo == AST_PARAM_LIST) {
+                      if (C.size()>0) collectParam(C[0]);
+                      if (C.size()>1) collectParam(C[1]);
+                  }
+                  else if (p->tipo == AST_SYMBOL) {
+                      // pega o tipo ID (SYMBOL_ID_*) e o texto
+                      int  symType = p->simbolo->type;
+                      auto name   = p->simbolo->text.c_str();
+                      // determina o dataType correspondente
+                      int dt;
+                      switch(symType) {
+                        case SYMBOL_ID_INT:  dt = DATA_INT;  break;
+                        case SYMBOL_ID_REAL: dt = DATA_REAL; break;
+                        case SYMBOL_ID_BYTE: dt = DATA_INT; break;
+                        default:             dt = DATA_ID;   break;
+                      }
+                      // reinsere para atualizar dataType
+                      SYMBOL* news = symbolInsert(symType, dt, const_cast<char*>(name));
+                      p->simbolo = news;
+                      f->paramTypes.push_back(dt);
+                  }
+              };
+              collectParam(nodo->filho[1]);
+          }
         }
 
-        // verifica pelo comando return dentro do corpo
-        AST* body = (nodo->filho.size() >= 3 ? nodo->filho[2] : nullptr);
-        bool foundReturn = false;
-        function<void(AST*)> checkRet = [&](AST* n){
-            if (!n) return;
-            if (n->tipo == AST_CMD_RETURN) {
-                foundReturn = true;
-                AST* retExpr = (n->filho.size()>0 ? n->filho[0] : nullptr);
-                if (!retExpr) {
-                    fprintf(stderr,
-                        "Erro semântico: função %s não retorna expressão\n",
-                        f->text.c_str());
-                    semanticErrors++;
-                } else {
-                    int actual   = getDataType(retExpr);
-                    int expected = (f->type==SYMBOL_ID_INT  ? DATA_INT  :
-                                    f->type==SYMBOL_ID_REAL ? DATA_REAL :
-                                    /*byte/else*/           DATA_INT);
-                    if (actual != expected) {
-                        fprintf(stderr,
-                            "Erro semântico: função %s retorna tipo %d, esperado %d\n",
-                            f->text.c_str(), actual, expected);
-                        semanticErrors++;
-                    }
-                }
-            }
-            for (AST* c : n->filho) checkRet(c);
-        };
-        checkRet(body);
-        if (!foundReturn) {
-            fprintf(stderr,
-                "Warning: função %s não possui comando return\n",
-                f->text.c_str());
+        if (pass == 2) {
+          SYMBOL* f = nodo->filho[0]->simbolo;
+          fprintf(stderr,"[semanticCheck] vendo return da função %s\n",f->text.c_str());
+          // verifica pelo comando return dentro do corpo
+          AST* body = (nodo->filho.size() >= 3 ? nodo->filho[2] : nullptr);
+          bool foundReturn = false;
+          function<void(AST*)> checkRet = [&](AST* n){
+              if (!n) return;
+              if (n->tipo == AST_CMD_RETURN) {
+                  foundReturn = true;
+                  AST* retExpr = (n->filho.size()>0 ? n->filho[0] : nullptr);
+                  if (!retExpr) {
+                      fprintf(stderr,
+                          "Erro semântico: função %s não retorna expressão\n",
+                          f->text.c_str());
+                      semanticErrors++;
+                  } else {
+                      int actual   = getDataType(retExpr);
+                      int expected = (f->type==SYMBOL_ID_INT  ? DATA_INT  :
+                                      f->type==SYMBOL_ID_REAL ? DATA_REAL :
+                                      /*byte/else*/           DATA_INT);
+                      if (actual != expected) {
+                          fprintf(stderr,
+                              "Erro semântico: função %s retorna tipo %d, esperado %d\n",
+                              f->text.c_str(), actual, expected);
+                          semanticErrors++;
+                      }
+                  }
+              }
+              for (AST* c : n->filho) checkRet(c);
+          };
+          checkRet(body);
+          if (!foundReturn) {
+              fprintf(stderr,
+                  "Warning: função %s não possui comando return\n",
+                  f->text.c_str());
+          }
         }
         break;
       }
       case AST_FUNCALL: {
+        if (pass == 2) {
         // filho[0] = AST_SYMBOL da função chamada
         SYMBOL* f = nodo->filho[0]->simbolo;
         if (f->dataType != DATA_FUNCTION) {
@@ -299,9 +317,11 @@ int semanticCheck(AST* nodo){
                 }
             }
         }
+        }
         break;
       }
       case AST_CMD_ASSIGN: {
+        if (pass == 2) {
         if (nodo->filho.size() != 2) {
           fprintf(stderr,
             "Internal error: AST_CMD_ASSIGN com %zu filhos\n",
@@ -328,9 +348,11 @@ int semanticCheck(AST* nodo){
             lhs->simbolo->text.c_str());
           semanticErrors++;
         }
+        }
         break;
       }
       case AST_CMD_VEC_ASSIGN: {
+        if (pass == 2) {
         if (nodo->filho.size() != 2) {
           fprintf(stderr,
             "Internal error: AST_CMD_VEC_ASSIGN com %zu filhos\n",
@@ -376,9 +398,11 @@ int semanticCheck(AST* nodo){
             semanticErrors++;
           }
         }
+        }
         break;
       }
       case AST_VEC:{
+        if (pass == 1) {
         // filho[0] = AST_SYMBOL do vetor
         SYMBOL* s = nodo->filho[0]->simbolo;
         if (s->dataType != DATA_VECTOR) {
@@ -396,9 +420,11 @@ int semanticCheck(AST* nodo){
                 semanticErrors++;
             }
         }
+        }
           break;
       }
       case AST_CMD_IF:{
+        if (pass == 1) {
         // filho[0] = expressão de teste
         // filho[1] = bloco de comandos
         if (nodo->filho.size() != 2) {
@@ -410,9 +436,11 @@ int semanticCheck(AST* nodo){
             fprintf(stderr, "Erro semântico: teste de if não é booleano\n");
             semanticErrors++;
         }
+        }
           break;
       }
       case AST_CMD_IFELSE:{
+        if (pass == 1) {
         // filho[0] = expressão de teste
         // filho[1] = bloco de comandos
         // filho[2] = bloco de comandos else
@@ -425,9 +453,11 @@ int semanticCheck(AST* nodo){
             fprintf(stderr, "Erro semântico: teste de if não é booleano\n");
             semanticErrors++;
         }
+        }
           break;
       }
       case AST_CMD_WHILE:{
+        if (pass == 1) {
         // filho[0] = expressão de teste
         // filho[1] = bloco de comandos
         if (nodo->filho.size() != 2) {
@@ -439,9 +469,11 @@ int semanticCheck(AST* nodo){
             fprintf(stderr, "Erro semântico: teste de while não é booleano\n");
             semanticErrors++;
         }
+        }
           break;
       }
       case AST_CMD_DOWHILE:{
+        if (pass == 1) {
         // filho[0] = bloco de comandos
         // filho[1] = expressão de teste
         if (nodo->filho.size() != 2) {
@@ -453,6 +485,7 @@ int semanticCheck(AST* nodo){
             fprintf(stderr, "Erro semântico: teste de do-while não é booleano\n");
             semanticErrors++;
         }
+        }
           break;
       }
       default:
@@ -460,7 +493,7 @@ int semanticCheck(AST* nodo){
   }
   
   for (size_t i = 0; i < nodo->filho.size(); i++){
-    if (nodo->filho[i]) semanticCheck(nodo->filho[i]);
+    if (nodo->filho[i]) semanticCheck2Passadas(nodo->filho[i], pass);
   }
   return semanticErrors;
 }
@@ -533,7 +566,7 @@ int getDataType(AST* expr){
         switch(expr->filho[0]->simbolo->type){
           case SYMBOL_ID_INT:  return DATA_INT;
           case SYMBOL_ID_REAL: return DATA_REAL;
-          default:             return DATA_ID;
+          case SYMBOL_ID_BYTE: return DATA_INT;
         }
       }
       return DATA_ID;
