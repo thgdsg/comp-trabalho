@@ -111,7 +111,7 @@ int semanticCheck2Passadas(AST* nodo, int pass){
             int declaredSize = 0;
             if (NodoTamanhoVec->tipo == AST_SYMBOL) {
                 SYMBOL* tamanhoVec = NodoTamanhoVec->simbolo;
-                // se for int, mais símples
+                // se for int, mais simples
                 if (tamanhoVec->type == SYMBOL_INT) {
                     // converte string de dígitos para inteiro
                     try {
@@ -239,7 +239,7 @@ int semanticCheck2Passadas(AST* nodo, int pass){
           SYMBOL* f = nodo->filho[0]->simbolo;
           //fprintf(stderr,"[semanticCheck] vendo return da função %s\n",f->text.c_str());
           // verifica pelo comando return dentro do corpo
-          AST* body = (nodo->filho.size() >= 3 ? nodo->filho[2] : nullptr);
+          AST* body = nodo->filho.back();
           bool foundReturn = false;
           function<void(AST*)> checkRet = [&](AST* n){
               if (!n) return;
@@ -268,9 +268,7 @@ int semanticCheck2Passadas(AST* nodo, int pass){
           };
           checkRet(body);
           if (!foundReturn) {
-              fprintf(stderr,
-                  "Warning: função %s não possui comando return\n",
-                  f->text.c_str());
+              fprintf(stderr, "Warning: função %s não possui comando return\n", f->text.c_str());
           }
         }
         break;
@@ -297,7 +295,7 @@ int semanticCheck2Passadas(AST* nodo, int pass){
               if (C.size()>1) collectArg(C[1]);
             }
             else {
-              // nunca acessar p->simbolo sem garantir que ele existe:
+              // nunca acessa p->simbolo sem garantir que ele existe:
               args.push_back(getDataType(p));
             }
           };

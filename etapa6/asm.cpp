@@ -4,7 +4,7 @@
 
 #include "asm.hpp"
 #include "tac.hpp"
-#include "symbols.hpp" // Incluir para ter acesso à SymbolTable
+#include "symbols.hpp"
 #include <iostream>
 #include <string>
 #include <map>
@@ -15,32 +15,27 @@
 
 using namespace std;
 
-// Mapa para associar literais de string a labels
-static map<string, string> literalLabels; // Um único mapa para todos os literais
+// map global pra associar literais de string a labels no código
+static map<string, string> literalLabels;
 static int nextLiteralLabel = 0;
 
-// num cabeçalho global
+// com ordem global pra manter a ordem de inserção dos literais
 static vector<string> literalOrder;
 
-// Declara que a tabela de símbolos é externa
+// pega a tabela de símbolos pra gerar declarações de variáveis
 extern map<string, SYMBOL*> SymbolTable;
 
-// Função auxiliar para obter o endereço de um símbolo
+
+// função auxiliar pra obter o endereço de um símbolo
 string getSymbolAddress(SYMBOL* s) {
     if (!s) return "0";
 
-    // 1. Verifica se é um literal que foi armazenado na memória
+    // verifica se é um literal que foi armazenado na memória
     if (literalLabels.count(s->text)) {
         return literalLabels[s->text] + "(%rip)";
     }
 
-    // 2. Se não foi armazenado, mas é um literal, trata como valor imediato
-    //    (Isso pode não ser usado se o passo de pré-processamento pegar todos os literais)
-    if (s->type == SYMBOL_INT || s->type == SYMBOL_REAL || s->type == SYMBOL_CHAR) {
-        return "$" + s->text;
-    }
-
-    // 3. Assume que é uma variável global
+    // se não, assume que é uma variável global ou temporária
     return s->text + "(%rip)";
 }
 
@@ -50,37 +45,37 @@ void asmReadVector(TAC* tac, FILE* out){
     SYMBOL* resultSymbol = tac->resultado;
 
     fprintf(out, "\t# Lendo elemento de vetor: %s[%s]\n", vecSymbol->text.c_str(), indexSymbol->text.c_str());
-    // Carrega o índice para um registrador (ex: %rcx)
+
+    // carrega o índice pro registrador %ecx
     fprintf(out, "\tmovl\t%s, %%ecx\n", getSymbolAddress(indexSymbol).c_str());
-    // Calcula o endereço do elemento e o coloca em %rax
+    // calcula o endereço do elemento e o coloca em %rax
     fprintf(out, "\tleaq\t%s(%%rip), %%rax\n", vecSymbol->text.c_str());
 
-    // CORREÇÃO: Usa a instrução de movimentação correta com base no tipo do vetor.
+    // usa a instrução de movimentação com base no tipo do vetor
     if (vecSymbol->type == SYMBOL_ID_BYTE) {
-        // Para bytes, move 1 byte e zera o resto do registrador de destino.
+        // pra bytes, move 1 byte e zera o resto do registrador de destino
         fprintf(out, "\tmovzbl\t(%%rax, %%rcx, 1), %%edx\n");
     } else if (vecSymbol->type == SYMBOL_ID_REAL) {
-        // Para reais, move 8 bytes (numerador e denominador).
-        // Assumindo que o resultado é um temporário do tipo real.
-        fprintf(out, "\tmovq\t(%%rax, %%rcx, 8), %%rbx\n"); // Move 8 bytes para um registrador de 64 bits
+        // pra reais, move 8 bytes (numerador e denominador)
+        fprintf(out, "\tmovq\t(%%rax, %%rcx, 8), %%rbx\n");
         fprintf(out, "\tmovq\t%%rbx, %s\n", getSymbolAddress(resultSymbol).c_str());
-        // O código abaixo é para separar em dois registradores, se necessário.
-        // fprintf(out, "\tmovl\t(%%rax, %%rcx, 8), %%edx\n"); // Numerador
-        // fprintf(out, "\tmovl\t4(%%rax, %%rcx, 8), %%r8d\n"); // Denominador
     }
-    else { // Padrão para INT
-        // Para inteiros, move 4 bytes.
+    else { // caso padrão: INT
+        // move 4 bytes
         fprintf(out, "\tmovl\t(%%rax, %%rcx, 4), %%edx\n");
     }
 
-    // Armazena o valor lido no temporário de resultado (exceto para real que já foi feito).
+    // armazena o valor lido no temporário de resultado (exceto pra real que já foi feito)
     if (vecSymbol->type != SYMBOL_ID_REAL) {
         fprintf(out, "\tmovl\t%%edx, %s\n", getSymbolAddress(resultSymbol).c_str());
     }
 }
 
+// gera toda a seção de dados do código assembly
+// declara variáveis globais, vetores e literais
+// também declara os formatos de impressão e leitura usados pelo printf/scanf
 void asmGenerateDataSection(TAC* first, FILE* out) {
-    // 0. Pré-processa TACs para capturar inicializações globais
+    // pré-processa TACs para capturar inicializações globais
     std::map<std::string, SYMBOL*> initValues;
     for (TAC* tac = first; tac && tac->tipo != TAC_FUNC_START; tac = tac->next) {
         if (tac->tipo == TAC_VAR_ATTR && tac->resultado && tac->op1) {
@@ -92,7 +87,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
 
     fprintf(out, "\t.section .data\n");
 
-    // 1. Declara variáveis escalares
+    // declara variáveis escalares
     for (auto const& pair : SymbolTable) {
         const std::string& name = pair.first;
         SYMBOL* sym = pair.second;
@@ -155,9 +150,8 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
         }
     }
 
-    // 2. Declarar vetores (mantém sua lógica existente) …
-    //    (não alterado)
-    // Percorre as TACs para declarar vetores (com ou sem inicialização)
+    // 2. declara vetores
+    // percorre as TACs pra declarar vetores
     for (TAC* tac = first; tac; tac = tac->next) {
         if (tac->tipo == TAC_VEC_ATTR) {
             if (!tac->resultado || !tac->op1) {
@@ -172,14 +166,14 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
             fprintf(out, "\t.align 4\n");
             fprintf(out, "%s:\n", vecSymbol->text.c_str());
 
-            if (tac->op2) { // Vetor inicializado
+            if (tac->op2) { // vetor inicializado
                 std::vector<std::string> final_vals;
                 std::vector<std::string> tail_vals;
                 
-                // 1. Pega o primeiro valor da própria TAC_VEC_ATTR
+                // pega o primeiro valor da própria TAC_VEC_ATTR
                 final_vals.push_back(tac->op2->text);
 
-                // 2. Itera para FRENTE, coletando os valores da cauda (que estão invertidos)
+                // itera pra frente, coletando os valores invertidos da cauda
                 TAC* list_node = tac->next;
                 while (list_node && final_vals.size() + tail_vals.size() < (long unsigned int)declaredSize) {
                     if (list_node->tipo != TAC_VAR_LIST) {
@@ -192,20 +186,20 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                     list_node = list_node->next;
                 }
 
-                // 3. Reverte a cauda para a ordem correta
+                // reverte o vetor pra ordem correta
                 std::reverse(tail_vals.begin(), tail_vals.end());
 
-                // 4. Adiciona a cauda ordenada à lista final
+                // adiciona a cauda ordenada a lista final
                 final_vals.insert(final_vals.end(), tail_vals.begin(), tail_vals.end());
 
-                // 5. A lista agora está na ordem correta, então imprimimos com base no tipo do vetor.
+                // com a lista na ordem correta, imprime no ASM com base no tipo do vetor
                 if (vecSymbol->type == SYMBOL_ID_BYTE) {
                     for (const auto& val : final_vals) {
                         fprintf(out, "\t.byte %s\n", val.c_str());
                     }
                 } else if (vecSymbol->type == SYMBOL_ID_REAL) {
                     for (const auto& val : final_vals) {
-                        // Para reais, divide a string "num/den" e emite dois .long
+                        // pra reais, divide a string "num/den" e coloca dois .long
                         size_t slash_pos = val.find('/');
                         string numerator = "0";
                         string denominator = "1";
@@ -213,20 +207,21 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                             numerator = val.substr(0, slash_pos);
                             denominator = val.substr(slash_pos + 1);
                         } else {
-                            // Se não houver '/', assume que é um número inteiro (ex: "5" -> 5/1)
+                            // se não houver '/', assume que é um número inteiro (mas imprime um warning, pois estaria errado)
+                            fprintf(stderr, "Warning: literal REAL '%s' possui um formato inesperado. Tratando como INT.\n", val.c_str());
                             numerator = val;
                         }
                         fprintf(out, "\t.long %s\n", numerator.c_str());
                         fprintf(out, "\t.long %s\n", denominator.c_str());
                     }
-                } else { // Padrão para SYMBOL_ID_INT
+                } else { // default: INT
                     for (const auto& val : final_vals) {
                         fprintf(out, "\t.long %s\n", val.c_str());
                     }
                 }
 
-            } else { // Vetor não inicializado
-                int mult = 4; // Padrão para int
+            } else { // vetor não inicializado
+                int mult = 4; // default: INT
                 if (vecSymbol->type == SYMBOL_ID_BYTE) mult = 1;
                 else if (vecSymbol->type == SYMBOL_ID_REAL) mult = 8;
                 
@@ -236,39 +231,47 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
         }
     }
 
-    // 3. Declara os literais E formatos de impressão para printf
-    fprintf(out, "\n\t# Literais e Formatos de Impressao/Leitura\n");
+    // declara os formatos de impressão pro printf
+    fprintf(out, "\n\t# Formatos de Impressao/Leitura\n");
     fprintf(out, ".LC_INT:\n");
-    fprintf(out, "\t.string \"%%d \"\n"); // Formato para imprimir inteiros
+    fprintf(out, "\t.string \"%%d \"\n"); // formato pra INT
     fprintf(out, ".LC_REAL:\n");
-    fprintf(out, "\t.string \"%%d/%%d \"\n"); // Formato para imprimir reais
+    fprintf(out, "\t.string \"%%d/%%d \"\n"); // formato pra REAL
     fprintf(out, ".LC_CHAR:\n");
-    fprintf(out, "\t.string \"%%c \"\n"); // Formato para imprimir chars
+    fprintf(out, "\t.string \"%%c \"\n"); // formato pra CHAR
     fprintf(out, ".LC_STRING:\n");
-    fprintf(out, "\t.string \"%%s\"\n"); // Formato para imprimir strings
+    fprintf(out, "\t.string \"%%s\"\n"); // formato pra STRING
     
-    // NOVOS FORMATOS PARA SCANF
+    // formatos pra scanf (comando "read")
     fprintf(out, ".LC_SCAN_INT:\n");
-    fprintf(out, "\t.string \"%%d\"\n"); // Formato para ler um inteiro
+    fprintf(out, "\t.string \"%%d\"\n"); // formato pra inteiro
     fprintf(out, ".LC_SCAN_REAL:\n");
-    fprintf(out, "\t.string \"%%d/%%d\"\n"); // Formato para ler um real (num/den)
+    fprintf(out, "\t.string \"%%d/%%d\"\n"); // formato pra datatype real
+    fprintf(out, ".LC_SCAN_STRING:\n");
+    fprintf(out, "\t.string \"%%255s\"\n"); // formato pra ler uma string pro buffer
+    fprintf(out, ".LC_SCAN_CHAR:\n");
+    fprintf(out, "\t.string \" %%c\"\n"); // formato pra ler um char (tanto esse quanto o de string são pra converter caracteres pra ASCII)
 
+    // buffer pra leitura de valores com datatype DATA_INT (usado na função _read_and_convert)
+    fprintf(out, "\t.comm .read_buffer, 256, 32\n");
+
+    // declarações de literais, feitos similarmente as variáveis
     for (auto const& lit : literalOrder) {
       const auto &label = literalLabels[lit];
       fprintf(out, "\t.globl %s\n", label.c_str());
       SYMBOL* s = symbolLookup(const_cast<char*>(lit.c_str()));
 
-      // Usa o dataType para escolher a diretiva assembly correta
+      // usa o dataType para escolher a diretiva assembly correta
       switch (s->dataType) {
           case DATA_INT:
-              // Verifica se o literal é do tipo char para converter para ASCII
+              // verifica se o literal é do tipo char pra converter pra ASCII
               if (s->type == SYMBOL_CHAR) {
-                  // Extrai o caractere (ex: de "'a'" para 'a') e obtém seu valor ASCII
+                  // extrai o caractere e obtém seu valor ASCII
                   fprintf(out, "\t.align 4\n");
                   fprintf(out, "%s:\n", label.c_str());
                   fprintf(out, "\t.long %d\n", (int)s->text[1]);
               } else {
-                  // Se for um inteiro normal, imprime o valor do símbolo
+                  // se for um inteiro normal, imprime o seu valor
                   fprintf(out, "\t.align 4\n");
                   fprintf(out, "%s:\n", label.c_str());
                   fprintf(out, "\t.long %s\n", s->text.c_str());
@@ -285,7 +288,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                   numerator = real_lit.substr(0, slash_pos);
                   denominator = real_lit.substr(slash_pos + 1);
               } else {
-                  // Adiciona um aviso se o formato não for o esperado
+                  // adiciona um aviso se o formato não for o esperado
                   fprintf(stderr, "Warning: literal REAL '%s' possui um formato inesperado. Considerando como 0/1.\n", real_lit.c_str());
               }
 
@@ -296,13 +299,12 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
               break;
           }
           case DATA_STRING:
-              // A diretiva .string é para literais de texto
-              // CORREÇÃO: Usa s->text para obter a string correta
+              // usa .string pra literais de texto
               fprintf(out, "%s:\n", label.c_str());
               fprintf(out, "\t.string %s\n", s->text.c_str());
               break;
           default:
-              fprintf(stderr, "Warning: Literal '%s' with unknown dataType %d. Treating as string.\n", s->text.c_str(), s->dataType);
+              fprintf(stderr, "Warning: Datatype do literal '%s' de tipo %d desconhecido. Tratando por padrão como string.\n", s->text.c_str(), s->dataType);
               fprintf(out, "%s:\n", label.c_str());
               fprintf(out, "\t.string %s\n", s->text.c_str());
               break;
@@ -310,9 +312,12 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
     }
 }
 
+// gera o código assembly pras instruções TAC
+// a função recebe o primeiro nó da árvore de TACs e o arquivo de saída
+// o código gerado é escrito no arquivo de saída em formato assembly AT&T
 void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "\t.section .text\n");
-    fprintf(out, "\t.globl main\n"); // Assumindo que sempre há uma 'main'
+    fprintf(out, "\t.globl main\n");
 
     for (TAC* tac = first; tac; tac = tac->next) {
         switch (tac->tipo) {
@@ -322,7 +327,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
                 fprintf(out, "\tpushq %%rbp\n");
                 fprintf(out, "\tmovq %%rsp, %%rbp\n");
 
-                // 1. Coletar parâmetros da lista de TACs
+                // coleta parâmetros da lista de TACs (que vem após o TAC_FUNC_START)
                 vector<SYMBOL*> params;
                 TAC* p_node = tac->next;
                 while (p_node && (p_node->tipo == TAC_PARAM_LIST || p_node->tipo == TAC_SYMBOL)) {
@@ -334,11 +339,11 @@ void asmGenerateCode(TAC* first, FILE* out) {
 
                 std::reverse(params.begin(), params.end());
 
-                // 2. Mover argumentos dos registradores para as variáveis globais correspondentes.
-                // A convenção de chamada x86-64 passa os primeiros 6 argumentos int/ponteiro nos registradores.
+                // move os argumentos dos registradores pras variáveis globais correspondentes
+                // seguindo a convenção de chamada x86-64 (máximo de 6 argumentos nos registradores)
                 const char* arg_regs_32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
                 const char* arg_regs_8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
-                size_t arg_reg_idx = 0; // Índice para percorrer os registradores de argumento
+                size_t arg_reg_idx = 0; // índice pra percorrer registradores
 
                 for (size_t i = 0; i < params.size(); ++i) {
                     SYMBOL* p = params[i];
@@ -347,53 +352,54 @@ void asmGenerateCode(TAC* first, FILE* out) {
                         break;
                     }
 
-                    fprintf(out, "\t# Movendo argumento %zu (%s) do registrador para a variavel global\n", i + 1, p->text.c_str());
+                    fprintf(out, "\t# Movendo argumento %zu (%s) do registrador pra variavel global\n", i + 1, p->text.c_str());
                     
                     if (p->dataType == DATA_REAL) {
                         if (arg_reg_idx + 1 >= 6) {
                             fprintf(stderr, "ERRO! Parâmetro REAL excede o limite de registradores!\n");
                             break;
                         }
-                        // Um REAL consome dois registradores
+                        // um REAL consome dois registradores (formato numerador/denominador)
                         string addr = getSymbolAddress(p);
-                        fprintf(out, "\tmovl\t%s, %s\n", arg_regs_32[arg_reg_idx], addr.c_str());         // Numerador
-                        fprintf(out, "\tmovl\t%s, 4+%s\n", arg_regs_32[arg_reg_idx + 1], addr.c_str()); // Denominador
+                        fprintf(out, "\tmovl\t%s, %s\n", arg_regs_32[arg_reg_idx], addr.c_str()); // numerador
+                        fprintf(out, "\tmovl\t%s, 4+%s\n", arg_regs_32[arg_reg_idx + 1], addr.c_str()); // denominador
                         arg_reg_idx += 2;
                     } else if (p->type == SYMBOL_ID_BYTE) {
                         fprintf(out, "\tmovb\t%s, %s\n", arg_regs_8[arg_reg_idx], getSymbolAddress(p).c_str());
                         arg_reg_idx++;
-                    } else { // INT
+                    } else { // default: int
                         fprintf(out, "\tmovl\t%s, %s\n", arg_regs_32[arg_reg_idx], getSymbolAddress(p).c_str());
                         arg_reg_idx++;
                     }
                 }
-                // Avança o ponteiro tac para depois da lista de parâmetros
+                // avança o ponteiro de percorrer as tacs pra depois da lista de parâmetros
                 if (p_node) {
                     tac = p_node->prev;
                 }
                 break;
             }
             case TAC_FUNC_END:
+                // finaliza a função, restaurando o ponteiro de base e retornando
+                fprintf(out, "\t# Fim da função %s\n", tac->resultado->text.c_str());
                 fprintf(out, "\tleave\n");
                 fprintf(out, "\tret\n");
                 break;
 
             case TAC_CMD_ASSIGN:
-                // Verifica se a atribuição é de um tipo REAL
+                // verifica se a atribuição é do tipo REAL
                 if (tac->op1 && tac->op1->dataType == DATA_REAL) {
                     fprintf(out, "\t# Atribuição REAL\n");
-                    // Move o numerador e o denominador (8 bytes)
+                    // move o numerador e o denominador (8 bytes)
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t4+%s, %%edx\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
                 } else if (tac->op1 && (tac->op1->type == SYMBOL_ID_BYTE || tac->op1->type == SYMBOL_CHAR)) {
-                    // Atribuição de BYTE (1 byte)
+                    // atribuição de byte (apenas 1 byte)
                     fprintf(out, "\t# Atribuição BYTE\n");
                     fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
-                } else {
-                    // Atribuição padrão para INT (4 bytes)
+                } else { // default: INT
                     fprintf(out, "\t# Atribuição INT\n");
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
@@ -401,37 +407,38 @@ void asmGenerateCode(TAC* first, FILE* out) {
                 break;
             
             case TAC_LABEL:
+                // imprime um label
                 fprintf(out, "%s:\n", tac->resultado->text.c_str());
                 break;
 
             case TAC_JUMP_FALSE:
-                // Se op1 for nulo, é um salto incondicional (jmp)
+                // se op1 for nulo, é um salto incondicional (jmp)
                 if (tac->op1 == nullptr) {
-                    fprintf(out, "\t# Salto incondicional para %s\n", tac->resultado->text.c_str());
+                    fprintf(out, "\t# Salto incondicional pra %s\n", tac->resultado->text.c_str());
                     fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
                 } else {
-                    fprintf(out, "\t# Salto condicional para %s\n", tac->resultado->text.c_str());
-                    // Carrega o valor da condição (op1) para um registrador
+                    fprintf(out, "\t# Salto condicional pra %s\n", tac->resultado->text.c_str());
+                    // carrega o valor da condição (op1) pro registrador
                     fprintf(out, "\tmovzbl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    // Compara o registrador com 0
+                    // compara o registrador com 0
                     fprintf(out, "\ttestl\t%%eax, %%eax\n");
-                    // Salta para o LABEL se o resultado for zero (false)
+                    // salta pro LABEL se o resultado for zero (false)
                     fprintf(out, "\tje\t%s\n", tac->resultado->text.c_str());
                 }
                 break;
 
             case TAC_JUMP_TRUE:
-                // Se op1 for nulo, é um salto incondicional (jmp)
+                // se op1 for nulo, é um salto incondicional (jmp)
                 if (tac->op1 == nullptr) {
-                    fprintf(out, "\t# Salto incondicional para %s\n", tac->resultado->text.c_str());
+                    fprintf(out, "\t# Salto incondicional pra %s\n", tac->resultado->text.c_str());
                     fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
                 } else {
-                    fprintf(out, "\t# Salto condicional para %s\n", tac->resultado->text.c_str());
-                    // Carrega o valor da condição (op1) para um registrador
+                    fprintf(out, "\t# Salto condicional pra %s\n", tac->resultado->text.c_str());
+                    // carrega o valor da condição (op1) pro registrador
                     fprintf(out, "\tmovzbl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    // Compara o registrador com 0
+                    // compara o registrador com 0
                     fprintf(out, "\ttestl\t%%eax, %%eax\n");
-                    // Salta para o LABEL se o resultado for não-zero (true)
+                    // salta pro LABEL se o resultado for não-zero (true)
                     fprintf(out, "\tjne\t%s\n", tac->resultado->text.c_str());
                 }
                 break;
@@ -447,10 +454,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\taddq\t%%rbx, %%rax\n"); // rax = a*d + c*b (novo numerador)
                     fprintf(out, "\tmovslq\t%%r9d, %%rcx\n\timulq\t%%r11, %%rcx\n");  // rcx = b*d (novo denominador)
+                    // simplifica a fração após fazer a operação
                     fprintf(out, "\tmovq\t%%rax, %%rdi\n\tmovq\t%%rcx, %%rsi\n\tcall\t_simplify_fraction\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte ADD\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\taddb\t%%bl, %%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int ADD\n");
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str());
                     fprintf(out, "\taddl\t%%edx, %%eax\n");
@@ -469,10 +484,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovslq\t%%r10d, %%rbx\n\timulq\t%%r9, %%rbx\n");  // rbx = c*b
                     fprintf(out, "\tsubq\t%%rbx, %%rax\n"); // rax = a*d - c*b (novo numerador)
                     fprintf(out, "\tmovslq\t%%r9d, %%rcx\n\timulq\t%%r11, %%rcx\n");  // rcx = b*d (novo denominador)
+                    // simplifica a fração após fazer a operação
                     fprintf(out, "\tmovq\t%%rax, %%rdi\n\tmovq\t%%rcx, %%rsi\n\tcall\t_simplify_fraction\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte SUB\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tsubb\t%%bl, %%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int SUB\n");
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str());
                     fprintf(out, "\tsubl\t%%edx, %%eax\n");
@@ -489,10 +512,17 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovl\t4+%s, %%r11d\n", getSymbolAddress(tac->op2).c_str());   // d
                     fprintf(out, "\tmovslq\t%%r8d, %%rax\n\timulq\t%%r10, %%rax\n"); // rax = a*c
                     fprintf(out, "\tmovslq\t%%r9d, %%rcx\n\timulq\t%%r11, %%rcx\n");  // rcx = b*d
+                    // simplifica a fração após fazer a operação
                     fprintf(out, "\tmovq\t%%rax, %%rdi\n\tmovq\t%%rcx, %%rsi\n\tcall\t_simplify_fraction\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte MUL\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\timulb\t%s\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int MUL\n");
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\timull\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
@@ -508,12 +538,21 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovl\t4+%s, %%r11d\n", getSymbolAddress(tac->op2).c_str());   // d
                     fprintf(out, "\tmovslq\t%%r8d, %%rax\n\timulq\t%%r11, %%rax\n"); // rax = a*d
                     fprintf(out, "\tmovslq\t%%r9d, %%rcx\n\timulq\t%%r10, %%rcx\n");  // rcx = b*c
+                    // simplifica a fração após fazer a operação
                     fprintf(out, "\tmovq\t%%rax, %%rdi\n\tmovq\t%%rcx, %%rsi\n\tcall\t_simplify_fraction\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte DIV\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str()); // Dividendo em %al
+                    fprintf(out, "\tcbw\n"); // Estende o sinal de %al para %ax
+                    fprintf(out, "\tidivb\t%s\n", getSymbolAddress(tac->op2).c_str()); // Divide %ax pelo operando
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str()); // Quociente está em %al
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int DIV\n");
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t%s, %%ecx\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\txorl\t%%edx, %%edx\n"); // Zera o registrador edx
                     fprintf(out, "\tcltd\n");
                     fprintf(out, "\tidivl\t%%ecx\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
@@ -532,10 +571,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetl\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
-                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte LESS\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tcmpb\t%%bl, %%al\n");
+                    fprintf(out, "\tsetl\t%%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int LESS\n");
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n"); // compara %eax com %edx
                     fprintf(out, "\tsetl\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
@@ -553,10 +600,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetg\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
-                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte GREATER\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tcmpb\t%%bl, %%al\n");
+                    fprintf(out, "\tsetg\t%%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int GREATER\n");
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n"); // compara %eax com %edx
                     fprintf(out, "\tsetg\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
@@ -574,10 +629,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsete\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
-                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte EQUAL\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tcmpb\t%%bl, %%al\n");
+                    fprintf(out, "\tsete\t%%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int EQUAL\n");
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n"); // compara %eax com %edx
                     fprintf(out, "\tsete\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
@@ -595,10 +658,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetne\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
-                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte NEQUAL\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tcmpb\t%%bl, %%al\n");
+                    fprintf(out, "\tsetne\t%%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int NEQUAL\n");
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n"); // compara %eax com %edx
                     fprintf(out, "\tsetne\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
@@ -616,10 +687,18 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetge\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
-                } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
-                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte GEQ\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tcmpb\t%%bl, %%al\n");
+                    fprintf(out, "\tsetge\t%%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else { // operação com inteiros
+                    fprintf(out, "\t# Int GEQ\n");
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n"); // compara %eax com %edx
                     fprintf(out, "\tsetge\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
@@ -637,16 +716,25 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tcmpq\t%%rbx, %%rax\n");
                     fprintf(out, "\tsetle\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
+                } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
+                    fprintf(out, "\t# Byte LEQ\n");
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
+                    fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
+                    fprintf(out, "\tcmpb\t%%bl, %%al\n");
+                    fprintf(out, "\tsetle\t%%al\n");
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // Operação com inteiros
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // Carrega op1 em %eax
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // Carrega op2 em %edx
-                    fprintf(out, "\tcmpl\t%%edx, %%eax\n");                                 // Compara %eax com %edx
+                    fprintf(out, "\t# Int LEQ\n");
+                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str()); // carrega op1 em %eax
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(tac->op2).c_str()); // carrega op2 em %edx
+                    fprintf(out, "\tcmpl\t%%edx, %%eax\n"); // compara %eax com %edx
                     fprintf(out, "\tsetle\t%%al\n");
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 }
                 break;
 
             case TAC_AND:
+                fprintf(out, "\t# BOOL AND\n");
                 fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
                 fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
                 fprintf(out, "\tandb\t%%bl, %%al\n");
@@ -654,6 +742,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
                 break;
 
             case TAC_OR:
+                fprintf(out, "\t# BOOL OR\n");
                 fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
                 fprintf(out, "\tmovb\t%s, %%bl\n", getSymbolAddress(tac->op2).c_str());
                 fprintf(out, "\torb\t%%bl, %%al\n");
@@ -661,6 +750,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
                 break;
 
             case TAC_NOT:
+                fprintf(out, "\t# BOOL NOT\n");
                 fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str());
                 fprintf(out, "\tnotb\t%%al\n");
                 fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
@@ -671,7 +761,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
                 break;
             case TAC_PRINT_LIST:
             {
-                // 1) Coleta todos os nós TAC_PRINT_LIST consecutivos
+                // coleta todos os nós TAC_PRINT_LIST consecutivos
                 vector<SYMBOL*> printed_values;
                 TAC* node = tac;
                 while (node && node->tipo == TAC_PRINT_LIST) {
@@ -679,22 +769,23 @@ void asmGenerateCode(TAC* first, FILE* out) {
                         printed_values.push_back(node->resultado);
                     node = node->next;
                 }
-                // Guarda o último PRINT_LIST processado
+                // guarda o último PRINT_LIST processado
                 TAC* last = node ? node->prev : tac;
 
-                // 2) Inversão manual do vetor
+                // inverte o vetor de valores pra imprimir na ordem correta
                 for (size_t i = 0, j = printed_values.size() - 1; i < j; ++i, --j) {
                     SYMBOL* tmp = printed_values[i];
                     printed_values[i] = printed_values[j];
                     printed_values[j] = tmp;
                 }
 
-                // 3) Gera o código de print para cada item na ordem correta
+                // gera o código de print para cada item na ordem correta
                 for (SYMBOL* item : printed_values) {
                     if (!item) continue;
                     fprintf(out, "\t# Imprimindo valor: %s\n", item->text.c_str());
+                    // verifica o tipo do item de impressão e o imprime conforme seu tipo
                     if (item->type == SYMBOL_STRING) {
-                        // Usa printf com formato "%s" para não adicionar newline automaticamente.
+                        // usa printf com formato "%s" para não adicionar newline automaticamente
                         fprintf(out, "\tleaq\t.LC_STRING(%%rip), %%rdi\n"); // 1º arg: formato "%s"
                         fprintf(out, "\tleaq\t%s, %%rsi\n", getSymbolAddress(item).c_str()); // 2º arg: a string
                         fprintf(out, "\tmovl\t$0, %%eax\n"); 
@@ -722,15 +813,16 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     }
                 }
 
-                // 4) Ajusta 'tac' para pular todos os nós que acabamos de processar
+                // ajusta a tac pra pular todos os nós que acabamos de processar
                 tac = last;
                 break;
             }
             case TAC_CMD_PRINT:
+                // ignora o comando print pois processa os TAC_PRINT_LIST ao invés
                 break;
             case TAC_FUNCALL:
             {
-                // 1. Coletar argumentos das TACs TAC_EXPR_LIST anteriores.
+                // coleta argumentos das TACs TAC_EXPR_LIST anteriores
                 vector<SYMBOL*> args;
                 TAC* current = tac->prev;
                 while (current && current->tipo == TAC_EXPR_LIST) {
@@ -740,14 +832,12 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     current = current->prev;
                 }
 
-                // A lista de argumentos está agora na ordem correta para os registradores (arg1, arg2, ...)
-
-                // 2. Carregar argumentos nos registradores de acordo com a convenção x86-64.
+                // carrega argumentos nos registradores de acordo com a convenção x86-64.
                 const char* arg_regs_32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
                 const char* arg_regs_8[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
                 size_t arg_reg_idx = 0;
 
-                fprintf(out, "\t# Preparando argumentos para a chamada de %s\n", tac->op1->text.c_str());
+                fprintf(out, "\t# Preparando argumentos pra chamada de %s\n", tac->op1->text.c_str());
                 for (SYMBOL* arg : args) {
                     if (arg_reg_idx >= 6) {
                         fprintf(stderr, "ERRO: Mais de 6 argumentos não são suportados.\n");
@@ -759,44 +849,44 @@ void asmGenerateCode(TAC* first, FILE* out) {
                             fprintf(stderr, "ERRO: Argumento REAL excede o limite de registradores.\n");
                             break;
                         }
-                        // Passa o numerador no primeiro registrador e o denominador no segundo.
+                        // passa o numerador no primeiro registrador e o denominador no segundo.
                         fprintf(out, "\tmovl\t%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_32[arg_reg_idx]);
                         fprintf(out, "\tmovl\t4+%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_32[arg_reg_idx + 1]);
                         arg_reg_idx += 2;
                     } else if (arg->type == SYMBOL_ID_BYTE) {
                         fprintf(out, "\tmovzbl\t%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_8[arg_reg_idx]);
                         arg_reg_idx++;
-                    } else{ // INT
+                    } else{ // default: INT
                         fprintf(out, "\tmovl\t%s, %s\n", getSymbolAddress(arg).c_str(), arg_regs_32[arg_reg_idx]);
                         arg_reg_idx++;
                     }
                 }
 
-                // 3. Chamar a função. O nome da função está em op1.
+                // chama a função, considerando que o nome da função está em op1
                 fprintf(out, "\tcall\t%s\n", tac->op1->text.c_str());
 
-                // 4. Obter o valor de retorno e armazená-lo no resultado (temporário).
+                // obtém o valor de retorno e armazena ele no resultado (valor temporário)
                 SYMBOL* funcSymbol = tac->op1;
                 SYMBOL* resultSymbol = tac->resultado;
 
                 if (resultSymbol) {
                     fprintf(out, "\t# Armazenando valor de retorno de %s em %s\n", funcSymbol->text.c_str(), resultSymbol->text.c_str());
-                    // Verifica o tipo de retorno da função para saber de onde copiar o resultado.
+                    // verifica o tipo de retorno da função pra saber de onde copiar o resultado
                     switch (funcSymbol->type) {
                         case SYMBOL_ID_REAL:
-                            // Reais (8 bytes) são retornados em %eax (numerador) e %edx (denominador).
+                            // reais (8 bytes) são retornados em %eax (numerador) e %edx (denominador)
                             fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(resultSymbol).c_str());
                             fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(resultSymbol).c_str());
                             break;
 
                         case SYMBOL_ID_BYTE:
-                            // Bytes (1 byte) são retornados na parte baixa de %rax.
+                            // bytes (1 byte) são retornados na parte baixa de %rax
                             fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(resultSymbol).c_str());
                             break;
 
                         case SYMBOL_ID_INT:
                         default:
-                            // Inteiros (4 bytes) são retornados em %eax.
+                            // inteiros (4 bytes) são retornados em %eax
                             fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(resultSymbol).c_str());
                             break;
                     }
@@ -806,71 +896,74 @@ void asmGenerateCode(TAC* first, FILE* out) {
             case TAC_CMD_RETURN:
             {
                 if (tac->resultado) {
-                    // Verifica o tipo de dado do valor a ser retornado.
+                    // verifica o tipo de dado do valor a ser retornado.
                     switch (tac->resultado->dataType) {
                         case DATA_REAL:
-                            // Carrega o numerador em %eax e o denominador em %edx.
+                            // carrega o numerador em %eax e o denominador em %edx.
                             fprintf(out, "\t# Retornando REAL\n");
                             fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->resultado).c_str());
                             fprintf(out, "\tmovl\t4+%s, %%edx\n", getSymbolAddress(tac->resultado).c_str());
                             break;
 
                         case DATA_VECTOR:
-                            // Vetores não são retornados diretamente, mas podemos retornar o endereço do vetor.
+                            // tecnicamente esse caso não deveria acontecer, pois deveria ocorrer um TAC_VEC_READ antes
                             fprintf(out, "\t# Retornando endereço de vetor\n");
                             fprintf(out, "\tmovq\t%s, %%rax\n", getSymbolAddress(tac->resultado).c_str());
                             break;
                         case DATA_INT:
                         default:
-                            // Verifica se o tipo específico é BYTE para usar movb.
+                            // verifica se o tipo é BYTE pra usar movb.
                             if (tac->resultado->type == SYMBOL_ID_BYTE) {
                                 fprintf(out, "\t# Retornando BYTE\n");
                                 fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->resultado).c_str());
                             } else{
-                                // Caso contrário, trata como um INT padrão.
+                                // se não, trata como um INT
                                 fprintf(out, "\t# Retornando INT\n");
                                 fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->resultado).c_str());
                             }
                             break;
                     }
                 }
-                // Após carregar o valor de retorno, executa o epílogo da função.
+                // após carregar o valor de retorno, sai da função
+                fprintf(out, "\t# Saindo da função por meio do return\n");
                 fprintf(out, "\tleave\n");
                 fprintf(out, "\tret\n");
                 break;
             }
             case TAC_CMD_VEC_ASSIGN:
             {
+                // Atribuição de valor a um elemento do vetor
+                // o vetor é acessado por um índice, e o valor é atribuído a esse índice
                 SYMBOL* vecSymbol = tac->resultado;
                 SYMBOL* indexSymbol = tac->op1;
                 SYMBOL* valueSymbol = tac->op2;
 
                 fprintf(out, "\t# Atribuindo a elemento de vetor: %s[%s] = %s\n", vecSymbol->text.c_str(), indexSymbol->text.c_str(), valueSymbol->text.c_str());
 
-                // Carrega o índice para %rcx
+                // carrega o índice pra %rcx
                 fprintf(out, "\tmovl\t%s, %%ecx\n", getSymbolAddress(indexSymbol).c_str());
-                // Carrega o endereço base do vetor para %rax
+                // carrega o endereço base do vetor pra %rax
                 fprintf(out, "\tleaq\t%s(%%rip), %%rax\n", vecSymbol->text.c_str());
 
 
-                // Trata a atribuição com base no tipo do vetor
+                // trata essa atribuição com base no tipo do vetor
                 if (vecSymbol->type == SYMBOL_ID_REAL) {
-                    // Carrega o numerador e denominador do valor a ser atribuído
-                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(valueSymbol).c_str());      // Numerador
+                    // carrega o numerador e denominador do valor a ser atribuído
+                    fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(valueSymbol).c_str()); // Numerador
                     fprintf(out, "\tmovl\t4+%s, %%r8d\n", getSymbolAddress(valueSymbol).c_str()); // Denominador
-                    // Armazena o numerador na posição correta
+                    // armazena o numerador na posição correta
                     fprintf(out, "\tmovl\t%%edx, (%%rax, %%rcx, 8)\n");
-                    // Armazena o denominador 4 bytes depois
+                    // armazena o denominador 4 bytes depois
                     fprintf(out, "\tmovl\t%%r8d, 4(%%rax, %%rcx, 8)\n");
                 } else if (vecSymbol->type == SYMBOL_ID_BYTE) {
-                    // Carrega o valor (byte) para a parte baixa de %edx
+                    // carrega o valor (1 byte) pra parte baixa de %edx
                     fprintf(out, "\tmovb\t%s, %%dl\n", getSymbolAddress(valueSymbol).c_str());
-                    // Armazena o byte na posição correta
+                    // armazena o byte na posição correta
                     fprintf(out, "\tmovb\t%%dl, (%%rax, %%rcx, 1)\n");
-                } else { // Padrão para INT
-                    // Carrega o valor (inteiro) para %edx
+                } else { // default: INT
+                    // carrega o valor pra %edx
                     fprintf(out, "\tmovl\t%s, %%edx\n", getSymbolAddress(valueSymbol).c_str());
-                    // Armazena o inteiro na posição correta
+                    // armazena o inteiro na posição correta
                     fprintf(out, "\tmovl\t%%edx, (%%rax, %%rcx, 4)\n");
                 }
                 break;
@@ -886,42 +979,82 @@ void asmGenerateCode(TAC* first, FILE* out) {
 
                 fprintf(out, "\t# Lendo valor para a variavel %s\n", var->text.c_str());
 
-                // A convenção de chamada para scanf(formato, ...args) é:
+                // convenção de chamada x86-64 pra scanf:
                 // 1. %rdi <- endereço da string de formato
-                // 2. %rsi, %rdx, ... <- endereços das variáveis para armazenar os dados
-                // 3. %eax <- 0 (para funções variádicas)
+                // 2. %rsi, %rdx, ... <- endereços das variáveis pra armazenar os dados
+                // 3. %eax <- 0
 
                 if (var->dataType == DATA_REAL) {
-                    // Caso REAL: formato "%d/%d", precisa de dois ponteiros de destino.
+                    // tipo REAL: formato "%d/%d", precisa de dois ponteiros de destino
                     // %rsi -> endereço do numerador
                     // %rdx -> endereço do denominador
                     fprintf(out, "\tleaq\t.LC_SCAN_REAL(%%rip), %%rdi\n");
                     fprintf(out, "\tleaq\t%s, %%rsi\n", getSymbolAddress(var).c_str());
                     fprintf(out, "\tleaq\t4+%s, %%rdx\n", getSymbolAddress(var).c_str());
+                    fprintf(out, "\tmovl\t$0, %%eax\n");
+                    fprintf(out, "\tcall\tscanf@PLT\n");
                 } else {
-                    // Caso INT ou BYTE: formato "%d", precisa de um ponteiro de destino.
-                    // %rsi -> endereço da variável
-                    fprintf(out, "\tleaq\t.LC_SCAN_INT(%%rip), %%rdi\n");
-                    fprintf(out, "\tleaq\t%s, %%rsi\n", getSymbolAddress(var).c_str());
+                    // pro tipo INT e BYTE, chama a função auxiliar pra converter char se necessário
+                    // o scanf é chamado nessa função
+                    fprintf(out, "\tcall\t_read_and_convert\n");
+                    // o resultado (valor inteiro) foi colocado em %eax
+                    if (var->type == SYMBOL_ID_BYTE) {
+                        fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(var).c_str());
+                    } else {
+                        fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(var).c_str());
+                    }
                 }
-
-                // Zera %eax antes de chamar uma função variádica como scanf
-                fprintf(out, "\tmovl\t$0, %%eax\n");
-                fprintf(out, "\tcall\tscanf@PLT\n");
                 break;
             }
         default:
-                //fprintf(stderr, "ASM generation not implemented for TAC type %d\n", tac->tipo);
+                //fprintf(stderr, "Geração de ASM não implementada pra TACs do tipo: %d\n", tac->tipo);
                 break;
         }
     }
 
-    // Funções auxiliares em Assembly
+    // funções auxiliares em assembly
+    // anotação: tive que pedir ajuda do chatGPT pra escrever essas funções auxiliares
+    // especialmente a do máximo divisor comum (GCD) e simplificação de fração
     fprintf(out, "\n# --- Funcoes Auxiliares ---\n");
 
-    // _gcd: Calcula o Máximo Divisor Comum usando o algoritmo de Euclides.
-    // Entrada: %rdi, %rsi
-    // Saída: %rax
+    // _read_and_convert: lê uma string, converte para int ou char (ASCII)
+    // não recebe nada de entrada, mas usa o buffer global
+    // saída: valor inteiro em %eax
+    fprintf(out, "_read_and_convert:\n");
+    fprintf(out, "\tpushq\t%%rbp\n");
+    fprintf(out, "\tmovq\t%%rsp, %%rbp\n");
+    // chama scanf para ler uma string pro buffer
+    fprintf(out, "\tleaq\t.LC_SCAN_STRING(%%rip), %%rdi\n");
+    fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rsi\n");
+    fprintf(out, "\tmovl\t$0, %%eax\n");
+    fprintf(out, "\tcall\tscanf@PLT\n");
+    // verifica o comprimento da string lida
+    fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rdi\n");
+    fprintf(out, "\tcall\tstrlen@PLT\n");
+    // compara o comprimento com 1
+    fprintf(out, "\tcmpq\t$1, %%rax\n");
+    fprintf(out, "\tjne\t_convert_atoi\n"); // se não for 1, assume que é um número e usa atoi
+    // se o comprimento é 1, verifica se é um dígito
+    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // pega o único caractere
+    fprintf(out, "\tcmpb\t$48, %%al\n"); // compara com '0'
+    fprintf(out, "\tjl\t_is_char\n"); // se for menor, é um caractere
+    fprintf(out, "\tcmpb\t$57, %%al\n"); // compara com '9'
+    fprintf(out, "\tjle\t_convert_atoi\n"); // se for menor ou igual, é um dígito, usa atoi
+    fprintf(out, "_is_char:\n");
+    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // é um caractere, então pega seu valor ASCII
+    fprintf(out, "\tjmp\t_read_convert_end\n");
+    fprintf(out, "_convert_atoi:\n");
+    fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rdi\n"); // é um número, usa atoi
+    fprintf(out, "\tcall\tatoi@PLT\n");
+    fprintf(out, "_read_convert_end:\n");
+    fprintf(out, "\tleave\n");
+    fprintf(out, "\tret\n\n");
+
+    // _gcd: calcula o máximo divisor comum usando o algoritmo de euclides
+    // faz o algoritmo mdc(a, b) = mdc(b, a % b) até que b seja 0
+    // retorna o "a" como o mdc em %rax
+    // entrada: %rdi, %rsi
+    // saída: %rax
     fprintf(out, "_gcd:\n");
     fprintf(out, "\tmovq\t%%rdi, %%rax\n");
     fprintf(out, "\tmovq\t%%rsi, %%rbx\n");
@@ -930,9 +1063,9 @@ void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "\tje\t_gcd_end\n");
     fprintf(out, "\tmovq\t%%rbx, %%rcx\n");
     fprintf(out, "\tmovq\t%%rax, %%rdx\n");
-    fprintf(out, "\tmovq\t$0, %%rax\n"); // Limpa rax para a divisão
+    fprintf(out, "\tmovq\t$0, %%rax\n"); // limpa rax pra divisão
     fprintf(out, "\tmovq\t%%rdx, %%rax\n");
-    fprintf(out, "\tmovq\t$0, %%rdx\n"); // Limpa rdx para o resto
+    fprintf(out, "\tmovq\t$0, %%rdx\n"); // limpa rdx pro resto
     fprintf(out, "\tidivq\t%%rcx\n");
     fprintf(out, "\tmovq\t%%rcx, %%rax\n");
     fprintf(out, "\tmovq\t%%rdx, %%rbx\n");
@@ -940,9 +1073,9 @@ void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "_gcd_end:\n");
     fprintf(out, "\tret\n");
 
-    // _simplify_fraction: Simplifica uma fração.
-    // Entrada: Numerador em %rdi, Denominador em %rsi
-    // Saída: Numerador simplificado em %rax, Denominador simplificado em %rdx
+    // _simplify_fraction: simplifica uma fração, usando a função _gcd
+    // entrada: numerador em %rdi, denominador em %rsi
+    // saída: numerador simplificado em %rax, denominador simplificado em %rdx
     fprintf(out, "_simplify_fraction:\n");
     fprintf(out, "\tpushq\t%%rdi\n");
     fprintf(out, "\tpushq\t%%rsi\n");
@@ -953,7 +1086,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "\tmovq\t%%rdi, %%rax\n");
     fprintf(out, "\tmovq\t$0, %%rdx\n");
     fprintf(out, "\tidivq\t%%rbx\n"); // rax = numerador / gcd
-    fprintf(out, "\tpushq\t%%rax\n"); // Salva numerador simplificado
+    fprintf(out, "\tpushq\t%%rax\n"); // salva numerador simplificado
     fprintf(out, "\tmovq\t%%rsi, %%rax\n");
     fprintf(out, "\tmovq\t$0, %%rdx\n");
     fprintf(out, "\tidivq\t%%rbx\n"); // rax = denominador / gcd
@@ -968,13 +1101,14 @@ void asmGenerate(TAC* tac, FILE* out) {
     // adiciona a seção .note.GNU-stack pra evitar o warning do compilador
     fprintf(out, "\t.section\t.note.GNU-stack,\"\",@progbits\n");
     
-    // 1. Encontrar o início da lista de TACs
+    // encontra o início da lista de TACs
     TAC* first = tac;
     while (first && first->prev) {
         first = first->prev;
     }
 
-    // 2. Pré-processar para encontrar TODOS os literais
+    // pré-processa pra encontrar todos os literais
+    // antes de gerar a seção de dados
     for (TAC* t = first; t; t = t->next) {
         auto processSymbol = [&](SYMBOL* s) {
             if (s && (s->type == SYMBOL_INT || s->type == SYMBOL_REAL || s->type == SYMBOL_CHAR || s->type == SYMBOL_STRING)) {
@@ -990,10 +1124,10 @@ void asmGenerate(TAC* tac, FILE* out) {
         processSymbol(t->op2);
     }
 
-    // 3. Gerar a seção de dados, passando a lista de TACs
+    // gera a seção de dados, passando pela lista de TACs
     asmGenerateDataSection(first, out);
 
-    // 4. Gerar a seção de código
+    // gera a seção de código
     asmGenerateCode(first, out);
-    fprintf(stderr, "Arquivo ASM gerado!\n");
+    fprintf(stderr, "Arquivo ASM gerado com sucesso!\n");
 }

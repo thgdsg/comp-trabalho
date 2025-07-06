@@ -11,6 +11,7 @@
 void asmGenerate(TAC* tac, FILE* out);
 void asmGenerateCode(TAC* first, FILE* out);
 void asmGenerateDataSection(TAC* first, FILE* out);
+void asmReadVector(TAC* tac, FILE* out);
 string getSymbolAddress(SYMBOL* s);
 
 #endif

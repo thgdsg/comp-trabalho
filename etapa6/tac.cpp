@@ -29,7 +29,7 @@ TAC* tacCreate(int type, SYMBOL* res, SYMBOL* op1, SYMBOL* op2){
 
 void tacPrintSingle(TAC* tac){
     if (!tac) return;
-    //if (tac->tipo == TAC_SYMBOL) return;
+    if (tac->tipo == TAC_SYMBOL) return;
 
     fprintf(stderr, "TAC: (%s,%s,%s,%s)\n", TACTypes[tac->tipo].c_str(), tac->resultado ? tac->resultado->text.c_str() : "null",
            tac->op1 ? tac->op1->text.c_str() : "null",
@@ -165,14 +165,12 @@ TAC* makeWhile(TAC* code[]){
 
 TAC* makeDoWhile(TAC* code[]){
     SYMBOL* startLabel = symbolMakeLabel();
-    // SYMBOL* endLabel = symbolMakeLabel();
 
     TAC* bodyCode = code[0];
     TAC* conditionCode = code[1];
 
     TAC* startLabelTac = tacCreate(TAC_LABEL, startLabel, nullptr, nullptr);
     TAC* jumpTrueToStart = tacCreate(TAC_JUMP_TRUE, startLabel, conditionCode ? conditionCode->resultado : nullptr, nullptr);
-    // TAC* endLabelTac = tacCreate(TAC_LABEL, endLabel, nullptr, nullptr);
 
     // Encadeia as TACs:
     // 1. Label de início do loop
@@ -182,8 +180,6 @@ TAC* makeDoWhile(TAC* code[]){
     return tacJoin(startLabelTac,
            tacJoin(bodyCode,
            tacJoin(conditionCode, jumpTrueToStart)));
-           // tacJoin(conditionCode, 
-           // tacJoin(jumpTrueToStart, endLabelTac))));
 }
 
 TAC* makeFunction(TAC* code[]){
@@ -293,7 +289,7 @@ TAC* GenerateCode(AST* node){
             break;
         case AST_VEC:
         {
-            // Determina o tipo do elemento do vetor para criar um temporário correto.
+            // determina o tipo do elemento do vetor para criar um temporário correto
             int elementType = DATA_ID;
             int elementSymbolType = SYMBOL_INVALID;
             if (node->filho[0] && node->filho[0]->simbolo) {
@@ -305,7 +301,7 @@ TAC* GenerateCode(AST* node){
             }
             
             SYMBOL* temp = symbolMakeTemp(elementSymbolType, elementType);
-            // Gera uma TAC para ler o valor do vetor[índice] para o temporário.
+            // gera uma TAC pra ler o valor do vetor[índice] para o temporário
             result = tacJoin(
                 tacJoin(code[0], code[1]),
                 tacCreate(TAC_VEC_READ, temp, code[0]->resultado, code[1]->resultado)
