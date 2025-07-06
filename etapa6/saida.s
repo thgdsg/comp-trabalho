@@ -284,65 +284,85 @@ LIT15:
 	.string "o valor de z[contador] eh maior que 1/10!\n"
 	.globl LIT16
 LIT16:
-	.string "o valor de z[contador] eh menor que 3/10!\n"
+	.string "o valor de z[contador] nao eh maior que 1/10!\n"
 	.globl LIT17
 LIT17:
-	.string "\nValor original da variavel1: "
+	.string "o valor de z[contador] eh menor que 3/10!\n"
 	.globl LIT18
 LIT18:
-	.string "\nvariavel1 apos mult: "
+	.string "\Terminando Funcao manipula_real\n"
 	.globl LIT19
 LIT19:
-	.string "\nvariavel1 apos div: "
+	.string "\nIniciando Funcao manipula_bytes\n"
 	.globl LIT20
 LIT20:
-	.string "\nvariavel1 apos sub: "
+	.string "\nValor original da variavel1: "
 	.globl LIT21
-	.align 4
 LIT21:
-	.long 8
+	.string "\nvariavel1 apos mult: "
 	.globl LIT22
 LIT22:
-	.string "Valor da variavel x: "
+	.string "\nvariavel1 apos div: "
 	.globl LIT23
-	.align 4
 LIT23:
-	.long 12
+	.string "\nvariavel1 apos sub: "
 	.globl LIT24
 LIT24:
-	.string "\nColoque um valor a seguir: "
+	.string "\Terminando Funcao manipula_bytes\n"
 	.globl LIT25
+	.align 4
 LIT25:
-	.string "\nExecutando funcao manipula_real"
+	.long 8
 	.globl LIT26
 LIT26:
-	.string "valor da variavel quantidade antes do while loop: "
+	.string "\nIniciando Funcao main\n"
 	.globl LIT27
-	.align 4
 LIT27:
-	.long 50
+	.string "Valor da variavel x: "
 	.globl LIT28
+	.align 4
 LIT28:
-	.string "valor atingido: "
+	.long 12
 	.globl LIT29
 LIT29:
-	.string "valor maior que 50\n"
+	.string "\nColoque um valor pra variavel y: "
 	.globl LIT30
 LIT30:
-	.string "valor da variavel quantidade no loop: "
+	.string "Printando valor lido: "
 	.globl LIT31
-	.align 4
 LIT31:
-	.long 15
+	.string "\nExecutando funcao manipula_real"
 	.globl LIT32
 LIT32:
+	.string "\nIniciando Funcao multiplica\n"
+	.globl LIT33
+LIT33:
+	.string "valor da variavel quantidade antes do while loop: "
+	.globl LIT34
+	.align 4
+LIT34:
+	.long 50
+	.globl LIT35
+LIT35:
+	.string "valor atingido: "
+	.globl LIT36
+LIT36:
+	.string "valor maior que 50\n"
+	.globl LIT37
+LIT37:
+	.string "valor da variavel quantidade no loop: "
+	.globl LIT38
+LIT38:
 	.string "valor da variavel quantidade depois do loop: "
+	.globl LIT39
+LIT39:
+	.string "\Terminando Funcao multiplica\n"
 	.section .text
 	.globl main
 manipula_real:
 	pushq %rbp
 	movq %rsp, %rbp
-_label2:
+_label3:
 	# Lendo elemento de vetor: z[4]
 	movl	LIT11(%rip), %ecx
 	leaq	z(%rip), %rax
@@ -360,10 +380,10 @@ _label2:
 	cmpq	%rbx, %rax
 	sete	%al
 	movb	%al, _temp1(%rip)
-	# Salto condicional pra _label3
+	# Salto condicional pra _label4
 	movzbl	_temp1(%rip), %eax
 	testl	%eax, %eax
-	je	_label3
+	je	_label4
 	# Lendo elemento de vetor: z[aux_contador]
 	movl	aux_contador(%rip), %ecx
 	leaq	z(%rip), %rax
@@ -456,7 +476,15 @@ _label2:
 	leaq	LIT15(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
+	# Salto incondicional pra _label1
+	jmp	_label1
 _label0:
+	# Imprimindo valor: "o valor de z[contador] nao eh maior que 1/10!\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT16(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+_label1:
 	# Lendo elemento de vetor: z[aux_contador]
 	movl	aux_contador(%rip), %ecx
 	leaq	z(%rip), %rax
@@ -474,16 +502,16 @@ _label0:
 	cmpq	%rbx, %rax
 	setl	%al
 	movb	%al, _temp10(%rip)
-	# Salto condicional pra _label1
+	# Salto condicional pra _label2
 	movzbl	_temp10(%rip), %eax
 	testl	%eax, %eax
-	je	_label1
+	je	_label2
 	# Imprimindo valor: "o valor de z[contador] eh menor que 3/10!\n"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT16(%rip), %rsi
+	leaq	LIT17(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-_label1:
+_label2:
 	# Int ADD
 	movl	aux_contador(%rip), %eax
 	movl	LIT9(%rip), %edx
@@ -514,11 +542,16 @@ _label1:
 	movl	4+_temp12(%rip), %edx
 	movl	%eax, aux_valor_real(%rip)
 	movl	%edx, 4+aux_valor_real(%rip)
-	# Salto condicional pra _label2
+	# Salto condicional pra _label3
 	movzbl	_temp1(%rip), %eax
 	testl	%eax, %eax
-	jne	_label2
-_label3:
+	jne	_label3
+_label4:
+	# Imprimindo valor: "\Terminando Funcao manipula_real\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT18(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Retornando INT
 	movl	LIT9(%rip), %eax
 	# Saindo da função por meio do return
@@ -533,12 +566,12 @@ manipula_bytes:
 	# Atribuição INT
 	movl	LIT1(%rip), %eax
 	movl	%eax, aux_contador(%rip)
-	# Imprimindo valor: "\n"
+	# Imprimindo valor: "\nIniciando Funcao manipula_bytes\n"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT14(%rip), %rsi
+	leaq	LIT19(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-_label4:
+_label5:
 	# Lendo elemento de vetor: valores[aux_contador]
 	movl	aux_contador(%rip), %ecx
 	leaq	valores(%rip), %rax
@@ -588,13 +621,13 @@ _label4:
 	cmpl	%edx, %eax
 	setl	%al
 	movb	%al, _temp18(%rip)
-	# Salto condicional pra _label4
+	# Salto condicional pra _label5
 	movzbl	_temp18(%rip), %eax
 	testl	%eax, %eax
-	jne	_label4
+	jne	_label5
 	# Imprimindo valor: "\nValor original da variavel1: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT17(%rip), %rsi
+	leaq	LIT20(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: variavel1
@@ -616,7 +649,7 @@ _label4:
 	movl	%eax, variavel1(%rip)
 	# Imprimindo valor: "\nvariavel1 apos mult: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT18(%rip), %rsi
+	leaq	LIT21(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: variavel1
@@ -632,14 +665,14 @@ _label4:
 	# Byte DIV
 	movb	variavel1(%rip), %al
 	cbw
-	idivb	LIT4(%rip)
+	idivb	LIT0(%rip)
 	movb	%al, _temp20(%rip)
 	# Atribuição INT
 	movl	_temp20(%rip), %eax
 	movl	%eax, variavel1(%rip)
 	# Imprimindo valor: "\nvariavel1 apos div: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT19(%rip), %rsi
+	leaq	LIT22(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: variavel1
@@ -662,7 +695,7 @@ _label4:
 	movl	%eax, variavel1(%rip)
 	# Imprimindo valor: "\nvariavel1 apos sub: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT20(%rip), %rsi
+	leaq	LIT23(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: variavel1
@@ -675,8 +708,13 @@ _label4:
 	leaq	LIT14(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
+	# Imprimindo valor: "\Terminando Funcao manipula_bytes\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT24(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Retornando INT
-	movl	LIT21(%rip), %eax
+	movl	LIT25(%rip), %eax
 	# Saindo da função por meio do return
 	leave
 	ret
@@ -686,6 +724,11 @@ _label4:
 main:
 	pushq %rbp
 	movq %rsp, %rbp
+	# Imprimindo valor: "\nIniciando Funcao main\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT26(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Int ADD
 	movl	LIT4(%rip), %eax
 	movl	LIT2(%rip), %edx
@@ -708,7 +751,7 @@ main:
 	movl	%eax, x(%rip)
 	# Imprimindo valor: "Valor da variavel x: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT22(%rip), %rsi
+	leaq	LIT27(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: x
@@ -722,7 +765,7 @@ main:
 	movl	$0, %eax
 	call	printf@PLT
 	# Preparando argumentos pra chamada de multiplica
-	movl	LIT23(%rip), %edi
+	movl	LIT28(%rip), %edi
 	movl	LIT2(%rip), %esi
 	call	multiplica
 	# Armazenando valor de retorno de multiplica em _temp25
@@ -735,14 +778,19 @@ main:
 	leaq	.LC_INT(%rip), %rdi
 	movl	$0, %eax
 	call	printf@PLT
-	# Imprimindo valor: "\nColoque um valor a seguir: "
+	# Imprimindo valor: "\nColoque um valor pra variavel y: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT24(%rip), %rsi
+	leaq	LIT29(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Lendo valor para a variavel y
 	call	_read_and_convert
 	movb	%al, y(%rip)
+	# Imprimindo valor: "Printando valor lido: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT30(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Imprimindo valor: y
 	movzbl	y(%rip), %esi
 	leaq	.LC_INT(%rip), %rdi
@@ -750,7 +798,7 @@ main:
 	call	printf@PLT
 	# Imprimindo valor: "\nExecutando funcao manipula_real"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT25(%rip), %rsi
+	leaq	LIT31(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Preparando argumentos pra chamada de manipula_real
@@ -787,9 +835,14 @@ multiplica:
 	movl	%edi, quantidade(%rip)
 	# Movendo argumento 2 (valor) do registrador pra variavel global
 	movl	%esi, valor(%rip)
+	# Imprimindo valor: "\nIniciando Funcao multiplica\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT32(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
 	# Imprimindo valor: "valor da variavel quantidade antes do while loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT26(%rip), %rsi
+	leaq	LIT33(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: quantidade
@@ -802,17 +855,17 @@ multiplica:
 	leaq	LIT14(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-_label7:
+_label8:
 	# Int GREATER
 	movl	valor(%rip), %eax
-	movl	LIT27(%rip), %edx
+	movl	LIT34(%rip), %edx
 	cmpl	%edx, %eax
 	setg	%al
 	movb	%al, _temp28(%rip)
-	# Salto condicional pra _label5
+	# Salto condicional pra _label6
 	movzbl	_temp28(%rip), %eax
 	testl	%eax, %eax
-	je	_label5
+	je	_label6
 	# Int MUL
 	movl	valor(%rip), %eax
 	imull	aux_mult(%rip), %eax
@@ -822,7 +875,7 @@ _label7:
 	movl	%eax, valor(%rip)
 	# Imprimindo valor: "valor atingido: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT28(%rip), %rsi
+	leaq	LIT35(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: valor
@@ -837,12 +890,12 @@ _label7:
 	call	printf@PLT
 	# Imprimindo valor: "valor maior que 50\n"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT29(%rip), %rsi
+	leaq	LIT36(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-	# Salto incondicional pra _label6
-	jmp	_label6
-_label5:
+	# Salto incondicional pra _label7
+	jmp	_label7
+_label6:
 	# Int MUL
 	movl	valor(%rip), %eax
 	imull	aux_mult(%rip), %eax
@@ -850,10 +903,10 @@ _label5:
 	# Atribuição INT
 	movl	_temp30(%rip), %eax
 	movl	%eax, valor(%rip)
-_label6:
+_label7:
 	# Imprimindo valor: "valor da variavel quantidade no loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT30(%rip), %rsi
+	leaq	LIT37(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: quantidade
@@ -866,27 +919,27 @@ _label6:
 	leaq	LIT14(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-	# Int ADD
+	# Int SUB
 	movl	quantidade(%rip), %eax
 	movl	LIT9(%rip), %edx
-	addl	%edx, %eax
+	subl	%edx, %eax
 	movl	%eax, _temp31(%rip)
 	# Atribuição INT
 	movl	_temp31(%rip), %eax
 	movl	%eax, quantidade(%rip)
 	# Int LESS
 	movl	quantidade(%rip), %eax
-	movl	LIT31(%rip), %edx
+	movl	LIT4(%rip), %edx
 	cmpl	%edx, %eax
 	setl	%al
 	movb	%al, _temp32(%rip)
-	# Salto condicional pra _label7
+	# Salto condicional pra _label8
 	movzbl	_temp32(%rip), %eax
 	testl	%eax, %eax
-	jne	_label7
+	jne	_label8
 	# Imprimindo valor: "valor da variavel quantidade depois do loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT32(%rip), %rsi
+	leaq	LIT38(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: quantidade
@@ -901,7 +954,7 @@ _label6:
 	call	printf@PLT
 	# Imprimindo valor: "valor atingido: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT28(%rip), %rsi
+	leaq	LIT35(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: valor
@@ -912,6 +965,11 @@ _label6:
 	# Imprimindo valor: "\n"
 	leaq	.LC_STRING(%rip), %rdi
 	leaq	LIT14(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\Terminando Funcao multiplica\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT39(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Retornando INT

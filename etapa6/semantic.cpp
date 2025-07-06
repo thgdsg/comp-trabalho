@@ -24,7 +24,7 @@ using namespace std;
     "AST_ADD", "AST_SUB", "AST_MUL", "AST_DIV",
     "AST_LESS", "AST_LEQ", "AST_GREATER", "AST_GEQ",
     "AST_EQUAL", "AST_NEQUAL",
-    "AST_AND", "AST_OR",
+    // "AST_AND", "AST_OR",
     "AST_NOT",
 */
 

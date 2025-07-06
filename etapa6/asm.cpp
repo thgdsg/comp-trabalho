@@ -75,7 +75,7 @@ void asmReadVector(TAC* tac, FILE* out){
 // declara variáveis globais, vetores e literais
 // também declara os formatos de impressão e leitura usados pelo printf/scanf
 void asmGenerateDataSection(TAC* first, FILE* out) {
-    // pré-processa TACs para capturar inicializações globais
+    // pré-processa TACs pra capturar inicializações globais
     std::map<std::string, SYMBOL*> initValues;
     for (TAC* tac = first; tac && tac->tipo != TAC_FUNC_START; tac = tac->next) {
         if (tac->tipo == TAC_VAR_ATTR && tac->resultado && tac->op1) {
@@ -907,6 +907,7 @@ void asmGenerateCode(TAC* first, FILE* out) {
 
                         case DATA_VECTOR:
                             // tecnicamente esse caso não deveria acontecer, pois deveria ocorrer um TAC_VEC_READ antes
+                            // colocando um valor temporário no resultado.
                             fprintf(out, "\t# Retornando endereço de vetor\n");
                             fprintf(out, "\tmovq\t%s, %%rax\n", getSymbolAddress(tac->resultado).c_str());
                             break;

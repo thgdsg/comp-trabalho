@@ -68,7 +68,7 @@ byte manipula_bytes(){
     variavel1 = variavel1 * aux_contador;
     print "\nvariavel1 apos mult: " variavel1 "\n";
 
-    variavel1 = variavel1 / 10;
+    variavel1 = variavel1 / 01;
     print "\nvariavel1 apos div: " variavel1 "\n";
 
     variavel1 = variavel1 - 5;

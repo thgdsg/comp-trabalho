@@ -1,7 +1,7 @@
 make -s clean
 make -s
 # compila o código fonte e transforma o arquivo "teste" em assembly
-./etapa6 teste6.txt saida.s
+./etapa6 teste_todos.txt saida.s
 gcc -c saida.s
 gcc saida.o -o saida
 # executa o código ASM compilado
