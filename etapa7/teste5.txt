@@ -1,0 +1,22 @@
+// testa a geração de código, sem condicionais
+int x = 01;
+real naosei = 5/2;
+byte y = 552;
+
+byte z[5] = 1,2,3,4,5;
+
+real numeros[3] = 1/2,2/3,3/4;
+real pequeno[1];
+
+real funcaozinha(real retorno, real qqr_coisa){
+	numeros[1] = 5/01;
+	retorno = retorno + qqr_coisa;
+	return retorno;
+}
+
+int main(){
+	pequeno[0] = 10/5;
+	print "antes da funcao: " pequeno[0] "\n";
+	pequeno[0] = numeros[2] * numeros[1];
+	print "dps da funcao: " pequeno[0] "\n";
+}

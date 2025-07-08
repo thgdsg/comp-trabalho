@@ -1,0 +1,125 @@
+// testa a geração de código, com condicionais
+// testa praticamente tudo que a linguagem pode oferecer
+
+// valores int pra testar
+int x = 01;
+byte y = 0;
+
+// variaveis auxiliares pra usar em funções
+int aux_mult = 2;
+int aux_contador = 0;
+int aux_retorno_funcoes = 0;
+real aux_valor_real = 2/01;
+
+// vetores real pra testar manipulação de vetores e operações com números reais
+real z[5] = 1/01,2/01,3/01,4/01,5/01;
+real matriz_vazia[5];
+
+// vetor e variaveis byte pra testar se as operações estão ok
+byte valores[5] = 0,1,2,3,4;
+byte variavel1 = 01;
+byte saida = 0;
+
+// manipula_real: mexe com o vetor z e imprime valores diferentes dependendo do valor sendo lido
+int manipula_real(){
+    while (z[4] == 5/01) do{
+        // testa atribuição de valores a uma matriz vazia
+        z[aux_contador] = aux_valor_real;
+        matriz_vazia[aux_contador] = z[aux_contador];
+
+        // verifica seus valores
+        print "\nValor de z[contador]: " z[aux_contador];
+        print "\nValor de matriz_vazia[contador]: " matriz_vazia[aux_contador] "\n";
+
+        // lembrando que os valores são interpretados ao contrário
+        if (z[aux_contador] > 1/01){
+            print "o valor de z[contador] eh maior que 1/10!\n";
+        }
+        else{
+            print "o valor de z[contador] nao eh maior que 1/10!\n";
+        }
+        if (z[aux_contador] < 3/01){
+            print "o valor de z[contador] eh menor que 3/10!\n";
+        }
+
+        // incrementa o contador
+        aux_contador = aux_contador + 1;
+        aux_valor_real = aux_valor_real + 1/01;
+    }
+    // retorna 1 no final, pra testar se deu tudo ok na execução
+    print "\Terminando Funcao manipula_real\n";
+    return 1;
+}
+
+// manipula_bytes: mexe com variáveis e vetores do tipo byte
+// pra ver se está funcionando a manipulação e alocação na memória
+byte manipula_bytes(){
+    aux_contador = 0;
+    print "\nIniciando Funcao manipula_bytes\n";
+    do{
+        // testa a manipulação de vetores byte
+        valores[aux_contador] = valores[aux_contador] + 01;
+        print valores[aux_contador] "\n";
+        aux_contador = aux_contador + 1;
+    }while (aux_contador < 5);
+
+    print "\nValor original da variavel1: " variavel1 "\n";
+
+    variavel1 = variavel1 * aux_contador;
+    print "\nvariavel1 apos mult: " variavel1 "\n";
+
+    variavel1 = variavel1 / 01;
+    print "\nvariavel1 apos div: " variavel1 "\n";
+
+    variavel1 = variavel1 - 5;
+    print "\nvariavel1 apos sub: " variavel1 "\n";
+
+    print "\Terminando Funcao manipula_bytes\n";
+    return 8;
+}
+
+// main, chama funções e testa atribuições, sempre é a primeira função a executar
+// ou a única função a executar, caso não chame nenhuma outra função
+int main(){
+    print "\nIniciando Funcao main\n";
+
+    x = 5 + 2 - (01 / 2);
+    print "Valor da variavel x: " x "\n";
+
+	aux_retorno_funcoes = multiplica(21, 2);
+    print aux_retorno_funcoes;
+
+    print "\nColoque um valor pra variavel y: ";
+    read y;
+    print "Printando valor lido: " y;
+
+    print "\nExecutando funcao manipula_real";
+    aux_mult = manipula_real();
+    print aux_mult;
+    saida = manipula_bytes();
+    print saida;
+}
+
+// multiplica: multiplica um valor por aux_mult (no caso desse arquivo, 2)
+// se o valor for maior que 50, printa que ele é maior que 50
+// faz isso até o valor quantidade chegar a 5
+int multiplica(int quantidade, int valor){
+    print "\nIniciando Funcao multiplica\n";
+    print "valor da variavel quantidade antes do while loop: " quantidade "\n";
+    do {
+        if (valor > 05){
+            valor = valor * aux_mult;
+            print "valor atingido: " valor "\n";
+            print "valor maior que 50\n";
+        }
+        else{
+            valor = valor * aux_mult;
+        }
+        print "valor da variavel quantidade no loop: " quantidade "\n";
+        quantidade = quantidade - 1;
+    } while (quantidade < 5);
+    print "valor da variavel quantidade depois do loop: " quantidade "\n";
+    print "valor atingido: " valor "\n";
+    print "\Terminando Funcao multiplica\n";
+    return valor;
+}
