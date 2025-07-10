@@ -10,6 +10,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 // fazendo pro montador assembly AT&T rodando em linux
 
@@ -25,6 +26,9 @@ static vector<string> literalOrder;
 // pega a tabela de símbolos pra gerar declarações de variáveis
 extern map<string, SYMBOL*> SymbolTable;
 
+// map global pra encontrar valores constantes no código
+// pra otimizar operações com literais/constantes
+static map<string, int> constantValues;
 
 // função auxiliar pra obter o endereço de um símbolo
 string getSymbolAddress(SYMBOL* s) {
@@ -92,7 +96,27 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
         const std::string& name = pair.first;
         SYMBOL* sym = pair.second;
         bool is_temp = name.rfind("_temp", 0) == 0;
-        if (is_temp);
+        if (is_temp){
+            int size_in_bytes = 0;
+            switch (sym->dataType){
+                case DATA_FUNCTION:
+                    if (sym->type==SYMBOL_ID_BYTE) size_in_bytes=1;
+                    else if (sym->type==SYMBOL_ID_REAL) size_in_bytes=8;
+                    else size_in_bytes=4;
+                    break;
+                case DATA_INT:
+                    size_in_bytes = (sym->type==SYMBOL_ID_BYTE ? 1 : 4);
+                    break;
+                case DATA_REAL:
+                    size_in_bytes = 8;
+                    break;
+                case DATA_BOOL:
+                    size_in_bytes = 1;
+                    break;
+            }
+            fprintf(out, "\t.comm %s, %d, 4\n", name.c_str(), size_in_bytes);
+            continue;
+        }
         else if (sym->dataType==DATA_FUNCTION||sym->dataType==DATA_VECTOR||
             sym->type==SYMBOL_INT||sym->type==SYMBOL_REAL||
             sym->type==SYMBOL_CHAR||sym->type==SYMBOL_STRING)
@@ -161,12 +185,12 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
             SYMBOL* vecSymbol = tac->resultado;
             SYMBOL* sizeSymbol = tac->op1;
             int declaredSize = stoi(sizeSymbol->text);
-            
-            fprintf(out, "\t.globl %s\n", vecSymbol->text.c_str());
-            fprintf(out, "\t.align 4\n");
-            fprintf(out, "%s:\n", vecSymbol->text.c_str());
 
-            if (tac->op2) { // vetor inicializado
+
+            if (tac->op2) { // vetor inicializado`
+                fprintf(out, "\t.globl %s\n", vecSymbol->text.c_str());
+                fprintf(out, "\t.align 4\n");
+                fprintf(out, "%s:\n", vecSymbol->text.c_str());
                 std::vector<std::string> final_vals;
                 std::vector<std::string> tail_vals;
                 
@@ -226,7 +250,7 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
                 else if (vecSymbol->type == SYMBOL_ID_REAL) mult = 8;
                 
                 int spaceInBytes = declaredSize * mult;
-                fprintf(out, "\t.space %d\n", spaceInBytes);
+                fprintf(out, "\t.comm %s, %d, %d\n", vecSymbol->text.c_str(), spaceInBytes, 4);
             }
         }
     }
@@ -318,6 +342,24 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
 void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "\t.section .text\n");
     fprintf(out, "\t.globl main\n");
+
+    // encontra valores iniciais constantes
+    for (TAC* tac = first; tac; tac = tac->next) {
+        if (tac->tipo == TAC_VAR_ATTR && tac->resultado && tac->op1) {
+            if (tac->op1->type == SYMBOL_INT) { // tem que ser int
+                constantValues[tac->resultado->text] = std::stoi(tac->op1->text);
+            }
+        }
+    }
+
+    // retira as constantes que são alteradas durante o código
+    for (TAC* tac = first; tac; tac = tac->next) {
+        if (tac->tipo == TAC_CMD_ASSIGN || tac->tipo == TAC_CMD_VEC_ASSIGN || tac->tipo == TAC_CMD_READ) {
+            if (tac->resultado && constantValues.count(tac->resultado->text)) {
+                constantValues.erase(tac->resultado->text); // não é mais constante
+            }
+        }
+    }
 
     for (TAC* tac = first; tac; tac = tac->next) {
         switch (tac->tipo) {
@@ -418,10 +460,8 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
                 } else {
                     fprintf(out, "\t# Salto condicional pra %s\n", tac->resultado->text.c_str());
-                    // carrega o valor da condição (op1) pro registrador
-                    fprintf(out, "\tmovzbl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    // compara o registrador com 0
-                    fprintf(out, "\ttestl\t%%eax, %%eax\n");
+                    // update etapa7: compara o valor de op1 com zero diretamente da memória
+                    fprintf(out, "\tcmpb\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
                     // salta pro LABEL se o resultado for zero (false)
                     fprintf(out, "\tje\t%s\n", tac->resultado->text.c_str());
                 }
@@ -434,10 +474,8 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tjmp\t%s\n", tac->resultado->text.c_str());
                 } else {
                     fprintf(out, "\t# Salto condicional pra %s\n", tac->resultado->text.c_str());
-                    // carrega o valor da condição (op1) pro registrador
-                    fprintf(out, "\tmovzbl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    // compara o registrador com 0
-                    fprintf(out, "\ttestl\t%%eax, %%eax\n");
+                    // update etapa7: compara o valor de op1 com zero diretamente da memória
+                    fprintf(out, "\tcmpb\t$0, %s\n", getSymbolAddress(tac->op1).c_str());
                     // salta pro LABEL se o resultado for não-zero (true)
                     fprintf(out, "\tjne\t%s\n", tac->resultado->text.c_str());
                 }
@@ -522,10 +560,41 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\timulb\t%s\n", getSymbolAddress(tac->op2).c_str());
                     fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str());
                 } else { // operação com inteiros
-                    fprintf(out, "\t# Int MUL\n");
-                    fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
-                    fprintf(out, "\timull\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
-                    fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                    auto check_and_optimize = [&](SYMBOL* op1, SYMBOL* op2) {
+                        int val;
+                        bool is_constant = false;
+
+                        // testa se é um literal inteiro
+                        if (op2->type == SYMBOL_INT) {
+                            val = stoi(op2->text);
+                            is_constant = true;
+                        } 
+                        // se não for, testa se é uma variável com valor constante conhecido
+                        else if (constantValues.count(op2->text)) {
+                            val = constantValues[op2->text];
+                            is_constant = true;
+                        }
+
+                        if (is_constant && val > 0 && (val & (val - 1)) == 0) { // é potência de 2
+                            int shift = log2(val);
+                            fprintf(out, "\t# Int MUL (otimizado com SHL)\n");
+                            fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(op1).c_str());
+                            fprintf(out, "\tshll\t$%d, %%eax\n", shift);
+                            fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    if (!check_and_optimize(tac->op1, tac->op2)) {
+                        if (!check_and_optimize(tac->op2, tac->op1)) {
+                            // caminho não otimizado
+                            fprintf(out, "\t# Int MUL\n");
+                            fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
+                            fprintf(out, "\timull\t%s, %%eax\n", getSymbolAddress(tac->op2).c_str());
+                            fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());
+                        }
+                    }
                 }
                 break;
 
@@ -544,15 +613,15 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tmovl\t%%edx, 4+%s\n", getSymbolAddress(tac->resultado).c_str());
                 } else if (tac->op1->type == SYMBOL_ID_BYTE || tac->op2->type == SYMBOL_ID_BYTE) {
                     fprintf(out, "\t# Byte DIV\n");
-                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str()); // Dividendo em %al
-                    fprintf(out, "\tcbw\n"); // Estende o sinal de %al para %ax
-                    fprintf(out, "\tidivb\t%s\n", getSymbolAddress(tac->op2).c_str()); // Divide %ax pelo operando
-                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str()); // Quociente está em %al
+                    fprintf(out, "\tmovb\t%s, %%al\n", getSymbolAddress(tac->op1).c_str()); // dividendo em %al
+                    fprintf(out, "\tcbw\n"); // estende o sinal de %al para %ax
+                    fprintf(out, "\tidivb\t%s\n", getSymbolAddress(tac->op2).c_str()); // divide %ax pelo operando
+                    fprintf(out, "\tmovb\t%%al, %s\n", getSymbolAddress(tac->resultado).c_str()); // quociente está em %al
                 } else { // operação com inteiros
                     fprintf(out, "\t# Int DIV\n");
                     fprintf(out, "\tmovl\t%s, %%eax\n", getSymbolAddress(tac->op1).c_str());
                     fprintf(out, "\tmovl\t%s, %%ecx\n", getSymbolAddress(tac->op2).c_str());
-                    fprintf(out, "\txorl\t%%edx, %%edx\n"); // Zera o registrador edx
+                    fprintf(out, "\txorl\t%%edx, %%edx\n"); // zera o registrador edx
                     fprintf(out, "\tcltd\n");
                     fprintf(out, "\tidivl\t%%ecx\n");
                     fprintf(out, "\tmovl\t%%eax, %s\n", getSymbolAddress(tac->resultado).c_str());

@@ -3,8 +3,8 @@ CXXFLAGS = -std=c++11 -Wall
 
 target: etapa7
 
-etapa7: lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o optimize.o
-	$(CXX) $(CXXFLAGS) lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o optimize.o -o etapa7
+etapa7: lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o
+	$(CXX) $(CXXFLAGS) lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o -o etapa7
 
 *.o: *.cpp
 	$(CXX) $(CXXFLAGS) $< -c

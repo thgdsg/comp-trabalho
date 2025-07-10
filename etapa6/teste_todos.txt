@@ -81,31 +81,41 @@ byte manipula_bytes(){
 // main, chama funções e testa atribuições, sempre é a primeira função a executar
 // ou a única função a executar, caso não chame nenhuma outra função
 int main(){
-    print "\nIniciando Funcao main\n";
+    print "\nIniciando Funcao main";
+
+	aux_retorno_funcoes = multiplica(2, 2);
+    print "\nValor de saida da funcao multiplica: " aux_retorno_funcoes;
+
+    print "\nExecutando funcao manipula_real";
+    aux_mult = manipula_real();
+    print "\nValor de saida da funcao manipula_real: " aux_mult;
+    saida = manipula_bytes();
+    print "\nValor de saida da funcao manipula_bytes: " saida;
 
     x = 5 + 2 - (01 / 2);
-    print "Valor da variavel x: " x "\n";
-
-	aux_retorno_funcoes = multiplica(21, 2);
-    print aux_retorno_funcoes;
+    print "\nValor da variavel x: " x "\n";
 
     print "\nColoque um valor pra variavel y: ";
     read y;
     print "Printando valor lido: " y;
-
-    print "\nExecutando funcao manipula_real";
-    aux_mult = manipula_real();
-    print aux_mult;
-    saida = manipula_bytes();
-    print saida;
 }
 
-// multiplica: multiplica um valor por aux_mult (no caso desse arquivo, 2)
-// se o valor for maior que 50, printa que ele é maior que 50
-// faz isso até o valor quantidade chegar a 5
+/--
+multiplica: multiplica um valor por aux_mult (no caso desse arquivo, 2)
+se o valor for maior que 50, printa que ele é maior que 50
+faz isso até o valor quantidade chegar a 5
+ 
+saida esperada:
+valor da variavel quantidade antes do while loop: 2 
+valor da variavel quantidade no loop: 2 
+valor da variavel quantidade no loop: 3 
+valor da variavel quantidade no loop: 4 
+valor da variavel quantidade depois do loop: 5
+valor atingido: 16
+--/
 int multiplica(int quantidade, int valor){
-    print "\nIniciando Funcao multiplica\n";
-    print "valor da variavel quantidade antes do while loop: " quantidade "\n";
+    print "\nIniciando Funcao multiplica";
+    print "\nvalor da variavel quantidade antes do while loop: " quantidade "\n";
     do {
         if (valor > 05){
             valor = valor * aux_mult;
@@ -116,7 +126,7 @@ int multiplica(int quantidade, int valor){
             valor = valor * aux_mult;
         }
         print "valor da variavel quantidade no loop: " quantidade "\n";
-        quantidade = quantidade - 1;
+        quantidade = quantidade + 1;
     } while (quantidade < 5);
     print "valor da variavel quantidade depois do loop: " quantidade "\n";
     print "valor atingido: " valor "\n";

@@ -1,7 +1,10 @@
 // testa a geração de código, com condicionais
 // testa praticamente tudo que a linguagem pode oferecer
+// diferença testada de espaço na memória entre etapa6 e etapa7: 200 bytes (com essa mesma quantidade de variáveis alocada)
+// essa diferença foi adquirida utilizando a diretiva .comm ao invés de .space pra temporários
+// e pra matrizes não inicializadas
 
-// valores int pra testar
+// valores int/byte pra testar
 int x = 01;
 byte y = 0;
 
@@ -10,6 +13,7 @@ int aux_mult = 2;
 int aux_contador = 0;
 int aux_retorno_funcoes = 0;
 real aux_valor_real = 2/01;
+int test_function = 0;
 
 // vetores real pra testar manipulação de vetores e operações com números reais
 real z[5] = 1/01,2/01,3/01,4/01,5/01;
@@ -22,6 +26,7 @@ byte saida = 0;
 
 // manipula_real: mexe com o vetor z e imprime valores diferentes dependendo do valor sendo lido
 int manipula_real(){
+    print "\nIniciando Funcao manipula_real\n";
     while (z[4] == 5/01) do{
         // testa atribuição de valores a uma matriz vazia
         z[aux_contador] = aux_valor_real;
@@ -59,20 +64,20 @@ byte manipula_bytes(){
     do{
         // testa a manipulação de vetores byte
         valores[aux_contador] = valores[aux_contador] + 01;
-        print valores[aux_contador] "\n";
+        print "valor atual de valores[aux_contador]: " valores[aux_contador] "\n";
         aux_contador = aux_contador + 1;
     }while (aux_contador < 5);
 
     print "\nValor original da variavel1: " variavel1 "\n";
 
     variavel1 = variavel1 * aux_contador;
-    print "\nvariavel1 apos mult: " variavel1 "\n";
+    print "\nvariavel1 apos mult: " variavel1;
 
     variavel1 = variavel1 / 01;
-    print "\nvariavel1 apos div: " variavel1 "\n";
+    print "\nvariavel1 apos div: " variavel1;
 
     variavel1 = variavel1 - 5;
-    print "\nvariavel1 apos sub: " variavel1 "\n";
+    print "\nvariavel1 apos sub: " variavel1;
 
     print "\Terminando Funcao manipula_bytes\n";
     return 8;
@@ -81,31 +86,60 @@ byte manipula_bytes(){
 // main, chama funções e testa atribuições, sempre é a primeira função a executar
 // ou a única função a executar, caso não chame nenhuma outra função
 int main(){
-    print "\nIniciando Funcao main\n";
+    print "\nIniciando Funcao main";
 
-    x = 5 + 2 - (01 / 2);
-    print "Valor da variavel x: " x "\n";
+    print "\nDeseja executar funcao multiplica? Digite 1 pra executar e 0 pra nao executar: ";
+    read test_function;
+    if (test_function == 1){
+        aux_retorno_funcoes = multiplica(2, 2);
+        print "\nValor de saida da funcao multiplica: " aux_retorno_funcoes;
+    }
 
-	aux_retorno_funcoes = multiplica(21, 2);
-    print aux_retorno_funcoes;
+    print "\nDeseja executar funcao manipula_real? Digite 1 pra executar e 0 pra nao executar: ";
+    read test_function;
+    if (test_function == 1){
+        aux_retorno_funcoes = manipula_real();
+        print "\nValor de saida da funcao manipula_real: " aux_retorno_funcoes;
+    }
 
-    print "\nColoque um valor pra variavel y: ";
+    print "\nDeseja executar funcao manipula_bytes? Digite 1 pra executar e 0 pra nao executar: ";
+    read test_function;
+    if (test_function == 1){
+        saida = manipula_bytes();
+        print "\nValor de saida da funcao manipula_bytes: " saida;
+    }
+
+    print "\nValor da variavel x antes das operacoes: " x "\n";
+    x = (5 * 2) + 2 - (01 / 2);
+    print "\nValor da variavel x apos operacoes: " x "\n";
+
+    print "\nColoque um valor int pra variavel y: ";
     read y;
     print "Printando valor lido: " y;
 
-    print "\nExecutando funcao manipula_real";
-    aux_mult = manipula_real();
-    print aux_mult;
-    saida = manipula_bytes();
-    print saida;
+    print "\nColoque um valor real pra variavel aux_valor_real: ";
+    read aux_valor_real;
+    print "Printando valor lido: " aux_valor_real "\n";
+
+
 }
 
-// multiplica: multiplica um valor por aux_mult (no caso desse arquivo, 2)
-// se o valor for maior que 50, printa que ele é maior que 50
-// faz isso até o valor quantidade chegar a 5
+/--
+multiplica: multiplica um valor por aux_mult (no caso desse arquivo, 2)
+se o valor for maior que 50, printa que ele é maior que 50
+faz isso até o valor quantidade chegar a 5
+ 
+saida esperada:
+valor da variavel quantidade antes do while loop: 2 
+valor da variavel quantidade no loop: 2 
+valor da variavel quantidade no loop: 3 
+valor da variavel quantidade no loop: 4 
+valor da variavel quantidade depois do loop: 5
+valor atingido: 16
+--/
 int multiplica(int quantidade, int valor){
-    print "\nIniciando Funcao multiplica\n";
-    print "valor da variavel quantidade antes do while loop: " quantidade "\n";
+    print "\nIniciando Funcao multiplica";
+    print "\nvalor da variavel quantidade antes do while loop: " quantidade "\n";
     do {
         if (valor > 05){
             valor = valor * aux_mult;
@@ -116,7 +150,7 @@ int multiplica(int quantidade, int valor){
             valor = valor * aux_mult;
         }
         print "valor da variavel quantidade no loop: " quantidade "\n";
-        quantidade = quantidade - 1;
+        quantidade = quantidade + 1;
     } while (quantidade < 5);
     print "valor da variavel quantidade depois do loop: " quantidade "\n";
     print "valor atingido: " valor "\n";

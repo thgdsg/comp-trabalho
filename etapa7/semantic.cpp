@@ -31,14 +31,22 @@ using namespace std;
 int semanticCheck(AST* nodo) {
     if (!nodo) return 0;
 
-    semanticErrors += semanticCheck2Passadas(nodo, 1); // primeira passada
-    semanticErrors += semanticCheck2Passadas(nodo, 2); // segunda passada
-
+    semanticCheck2Passadas(nodo, 1); // primeira passada
+    semanticCheck2Passadas(nodo, 2); // segunda passada
+    semanticMainCheck();
     return semanticErrors;
 }
 
-int semanticCheck2Passadas(AST* nodo, int pass){
-  if (!nodo) return semanticErrors;
+void semanticMainCheck(){
+  SYMBOL* main_func = symbolLookup(const_cast<char*>("main"));
+  if (main_func->type == SYMBOL_INVALID || main_func->dataType != DATA_FUNCTION) {
+    fprintf(stderr, "Warning: seu código não possui função main\n");
+    semanticErrors++;
+  }
+}
+
+void semanticCheck2Passadas(AST* nodo, int pass){
+  if (!nodo) return;
   // debug: qual nó está sendo verificado
   //fprintf(stderr,"[semanticCheck] tipo=%d filhos=%zu\n",nodo->tipo, nodo->filho.size());
 
@@ -500,7 +508,7 @@ int semanticCheck2Passadas(AST* nodo, int pass){
   for (size_t i = 0; i < nodo->filho.size(); i++){
     if (nodo->filho[i]) semanticCheck2Passadas(nodo->filho[i], pass);
   }
-  return semanticErrors;
+  return;
 }
 
 // pega o dataType de qualquer sub-árvore de expressão
