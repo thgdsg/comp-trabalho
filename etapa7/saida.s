@@ -225,7 +225,7 @@ LIT25:
 	.string "\nvariavel1 apos sub: "
 	.globl LIT26
 LIT26:
-	.string "\Terminando Funcao manipula_bytes\n"
+	.string "\nTerminando Funcao manipula_bytes\n"
 	.globl LIT27
 	.align 4
 LIT27:
@@ -635,7 +635,7 @@ _label5:
 	leaq	.LC_INT(%rip), %rdi
 	movl	$0, %eax
 	call	printf@PLT
-	# Imprimindo valor: "\Terminando Funcao manipula_bytes\n"
+	# Imprimindo valor: "\nTerminando Funcao manipula_bytes\n"
 	leaq	.LC_STRING(%rip), %rdi
 	leaq	LIT26(%rip), %rsi
 	movl	$0, %eax
@@ -865,11 +865,11 @@ _label8:
 	movl	$0, %eax
 	call	scanf@PLT
 	cmpl	$2, %eax
-	je	.L_read_ok_0x57e34b4e75c0
-.L_read_error_real_0x57e34b4e75c0:
+	je	.L_read_ok_0x57e8876445c0
+.L_read_error_real_0x57e8876445c0:
 	leaq	.LC_ERR_REAL_FORMAT(%rip), %rdi
 	call	_runtime_error
-.L_read_ok_0x57e34b4e75c0:
+.L_read_ok_0x57e8876445c0:
 	# Imprimindo valor: "Printando valor lido: "
 	leaq	.LC_STRING(%rip), %rdi
 	leaq	LIT38(%rip), %rsi
@@ -1079,6 +1079,11 @@ _read_and_convert:
 	jmp	.L_check_digit_loop
 .L_is_single_char:
 	movzbl	.read_buffer(%rip), %eax
+	cmpb	$'0', %al
+	jl	.L_read_done
+	cmpb	$'9', %al
+	jg	.L_read_done
+	subl	$48, %eax
 	jmp	.L_read_done
 .L_read_int_error:
 	leaq	.LC_ERR_INT_FORMAT(%rip), %rdi

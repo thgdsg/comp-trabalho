@@ -1162,9 +1162,17 @@ void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "\tjmp\t.L_check_digit_loop\n");
 
     // um só caractere: converte para ASCII
+    // se o caractere único for um dígito, converte pra int.
+    // se não, converte pra ASCII.
     fprintf(out, ".L_is_single_char:\n");
-    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // Carrega o byte e zera o resto de %eax
-    fprintf(out, "\tjmp\t.L_read_done\n"); // Pula para o final da função
+    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // carrega o caractere em %eax
+    fprintf(out, "\tcmpb\t$'0', %%al\n");
+    fprintf(out, "\tjl\t.L_read_done\n"); // se for < '0', é um símbolo, mantém o valor ASCII
+    fprintf(out, "\tcmpb\t$'9', %%al\n");
+    fprintf(out, "\tjg\t.L_read_done\n"); // se for > '9', é um símbolo, mantém o valor ASCII
+    // se estiver entre '0' e '9', subtrai '0' (48) pra obter o valor numérico.
+    fprintf(out, "\tsubl\t$48, %%eax\n");
+    fprintf(out, "\tjmp\t.L_read_done\n"); // pula pro final da função
 
     // ERRO
     fprintf(out, ".L_read_int_error:\n");

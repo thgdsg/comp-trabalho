@@ -79,7 +79,7 @@ byte manipula_bytes(){
     variavel1 = variavel1 - 5;
     print "\nvariavel1 apos sub: " variavel1;
 
-    print "\Terminando Funcao manipula_bytes\n";
+    print "\nTerminando Funcao manipula_bytes\n";
     return 8;
 }
 
