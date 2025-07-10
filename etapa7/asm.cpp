@@ -279,6 +279,13 @@ void asmGenerateDataSection(TAC* first, FILE* out) {
     // buffer pra leitura de valores com datatype DATA_INT (usado na função _read_and_convert)
     fprintf(out, "\t.comm .read_buffer, 256, 32\n");
 
+    // strings e buffers pra validação de entrada de "read"
+    fprintf(out, ".LC_ERR_INT_FORMAT:\n");
+    fprintf(out, "\t.string \"Erro de execucao: formato de entrada invalido para read (esperado um inteiro).\\n\"\n");
+    fprintf(out, ".LC_ERR_REAL_FORMAT:\n");
+    fprintf(out, "\t.string \"Erro de execucao: formato de entrada invalido para read (esperado um real no formato num/den).\\n\"\n");
+    fprintf(out, "\t.comm .read_int_buffer, 4, 4\n"); // Buffer temporário para leitura de int
+
     // declarações de literais, feitos similarmente as variáveis
     for (auto const& lit : literalOrder) {
       const auto &label = literalLabels[lit];
@@ -1063,6 +1070,15 @@ void asmGenerateCode(TAC* first, FILE* out) {
                     fprintf(out, "\tleaq\t4+%s, %%rdx\n", getSymbolAddress(var).c_str());
                     fprintf(out, "\tmovl\t$0, %%eax\n");
                     fprintf(out, "\tcall\tscanf@PLT\n");
+                    // validação: scanf pra "%d/%d" deve retornar 2 números lidos
+                    fprintf(out, "\tcmpl\t$2, %%eax\n");
+                    fprintf(out, "\tje\t.L_read_ok_%p\n", (void*)tac);
+                    // erro: se não for igual a 2, chama _runtime_error
+                    fprintf(out, ".L_read_error_real_%p:\n", (void*)tac);
+                    fprintf(out, "\tleaq\t.LC_ERR_REAL_FORMAT(%%rip), %%rdi\n");
+                    fprintf(out, "\tcall\t_runtime_error\n");
+                    // se for igual a 2, pula pra .L_read_ok
+                    fprintf(out, ".L_read_ok_%p:\n", (void*)tac);
                 } else {
                     // pro tipo INT e BYTE, chama a função auxiliar pra converter char se necessário
                     // o scanf é chamado nessa função
@@ -1087,36 +1103,80 @@ void asmGenerateCode(TAC* first, FILE* out) {
     // especialmente a do máximo divisor comum (GCD) e simplificação de fração
     fprintf(out, "\n# --- Funcoes Auxiliares ---\n");
 
-    // _read_and_convert: lê uma string, converte para int ou char (ASCII)
-    // não recebe nada de entrada, mas usa o buffer global
+    // _read_and_convert: lê uma string, valida se é um inteiro válido, e converte
+    // se a string não for um formato de inteiro válido, chama _runtime_error
     // saída: valor inteiro em %eax
     fprintf(out, "_read_and_convert:\n");
     fprintf(out, "\tpushq\t%%rbp\n");
     fprintf(out, "\tmovq\t%%rsp, %%rbp\n");
-    // chama scanf para ler uma string pro buffer
+    
+    // 1. lê a entrada do usuário como uma string pro buffer
     fprintf(out, "\tleaq\t.LC_SCAN_STRING(%%rip), %%rdi\n");
     fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rsi\n");
     fprintf(out, "\tmovl\t$0, %%eax\n");
     fprintf(out, "\tcall\tscanf@PLT\n");
-    // verifica o comprimento da string lida
+
+    // 2. valida o conteúdo do buffer
+    fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rcx\n"); // ponteiro pro início do buffer
+    
+    // verifica se a string está vazia (erro)
+    fprintf(out, "\tmovzbl\t(%%rcx), %%eax\n");
+    fprintf(out, "\ttestb\t%%al, %%al\n");
+    fprintf(out, "\tje\t.L_read_int_error\n");
+
+    // verifica o segundo caractere, se for nulo, a string tem comprimento 1.
+    fprintf(out, "\tmovzbl\t1(%%rcx), %%eax\n");
+    fprintf(out, "\ttestb\t%%al, %%al\n");
+    fprintf(out, "\tje\t.L_is_single_char\n"); // se for nulo, é um único caractere.
+
+    // muitos caracteres: valida como um número inteiro
+    fprintf(out, ".L_is_multi_char:\n");
+    fprintf(out, "\tmovzbl\t(%%rcx), %%eax\n"); // recarrega o primeiro caractere
+    // verifica se o primeiro caractere é um sinal opcional
+    fprintf(out, "\tcmpb\t$'+', %%al\n");
+    fprintf(out, "\tje\t.L_skip_sign\n");
+    fprintf(out, "\tcmpb\t$'-', %%al\n");
+    fprintf(out, "\tje\t.L_skip_sign\n");
+    fprintf(out, "\tjmp\t.L_check_digit_loop\n"); // se não for um sinal, começa a verificar os dígitos
+
+    fprintf(out, ".L_skip_sign:\n");
+    fprintf(out, "\tincq\t%%rcx\n"); // avança o ponteiro
+    fprintf(out, "\tmovzbl\t(%%rcx), %%eax\n"); // pega o próximo caractere
+    fprintf(out, "\ttestb\t%%al, %%al\n"); // verifica se a string termina logo após o sinal (erro)
+    fprintf(out, "\tje\t.L_read_int_error\n");
+
+    // loop pra verificar se todos os caracteres restantes são dígitos
+    fprintf(out, ".L_check_digit_loop:\n");
+    fprintf(out, "\tmovzbl\t(%%rcx), %%eax\n"); // pega o caractere atual
+    fprintf(out, "\ttestb\t%%al, %%al\n"); // chegou ao fim da string?
+    fprintf(out, "\tje\t.L_convert_with_atoi\n"); // se sim, a string é válida
+
+    // compara se o caractere está fora do intervalo '0'-'9'
+    fprintf(out, "\tcmpb\t$'0', %%al\n");
+    fprintf(out, "\tjl\t.L_read_int_error\n"); // menor que '0' -> erro
+    fprintf(out, "\tcmpb\t$'9', %%al\n");
+    fprintf(out, "\tjg\t.L_read_int_error\n"); // maior que '9' -> erro
+
+    // caractere é um dígito, avança para o próximo
+    fprintf(out, "\tincq\t%%rcx\n");
+    fprintf(out, "\tjmp\t.L_check_digit_loop\n");
+
+    // um só caractere: converte para ASCII
+    fprintf(out, ".L_is_single_char:\n");
+    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // Carrega o byte e zera o resto de %eax
+    fprintf(out, "\tjmp\t.L_read_done\n"); // Pula para o final da função
+
+    // ERRO
+    fprintf(out, ".L_read_int_error:\n");
+    fprintf(out, "\tleaq\t.LC_ERR_INT_FORMAT(%%rip), %%rdi\n");
+    fprintf(out, "\tcall\t_runtime_error\n");
+
+    // SUCESSO (MULTI-CARACTERE): converte com atoi
+    fprintf(out, ".L_convert_with_atoi:\n");
     fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rdi\n");
-    fprintf(out, "\tcall\tstrlen@PLT\n");
-    // compara o comprimento com 1
-    fprintf(out, "\tcmpq\t$1, %%rax\n");
-    fprintf(out, "\tjne\t_convert_atoi\n"); // se não for 1, assume que é um número e usa atoi
-    // se o comprimento é 1, verifica se é um dígito
-    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // pega o único caractere
-    fprintf(out, "\tcmpb\t$48, %%al\n"); // compara com '0'
-    fprintf(out, "\tjl\t_is_char\n"); // se for menor, é um caractere
-    fprintf(out, "\tcmpb\t$57, %%al\n"); // compara com '9'
-    fprintf(out, "\tjle\t_convert_atoi\n"); // se for menor ou igual, é um dígito, usa atoi
-    fprintf(out, "_is_char:\n");
-    fprintf(out, "\tmovzbl\t.read_buffer(%%rip), %%eax\n"); // é um caractere, então pega seu valor ASCII
-    fprintf(out, "\tjmp\t_read_convert_end\n");
-    fprintf(out, "_convert_atoi:\n");
-    fprintf(out, "\tleaq\t.read_buffer(%%rip), %%rdi\n"); // é um número, usa atoi
-    fprintf(out, "\tcall\tatoi@PLT\n");
-    fprintf(out, "_read_convert_end:\n");
+    fprintf(out, "\tcall\tatoi@PLT\n"); // o resultado já fica em %eax
+
+    fprintf(out, ".L_read_done:\n");
     fprintf(out, "\tleave\n");
     fprintf(out, "\tret\n\n");
 
@@ -1163,6 +1223,16 @@ void asmGenerateCode(TAC* first, FILE* out) {
     fprintf(out, "\tmovq\t%%rax, %%rdx\n"); // rdx = denominador simplificado
     fprintf(out, "\tpopq\t%%rax\n"); // rax = numerador simplificado
     fprintf(out, "\tret\n");
+
+    // _runtime_error: imprime uma mensagem de erro e encerra o programa
+    // entrada: %rdi <- endereço da string de erro
+    fprintf(out, "_runtime_error:\n");
+    fprintf(out, "\tmovq\t%%rdi, %%rsi\n"); // 2º argumento para printf
+    fprintf(out, "\tleaq\t.LC_STRING(%%rip), %%rdi\n"); // 1º argumento: formato "%s"
+    fprintf(out, "\tmovl\t$0, %%eax\n");
+    fprintf(out, "\tcall\tprintf@PLT\n"); // Imprime a mensagem
+    fprintf(out, "\tmovl\t$1, %%edi\n"); // Código de saída 1 (erro)
+    fprintf(out, "\tcall\texit@PLT\n"); // Encerra o programa
 }
 
 void asmGenerate(TAC* tac, FILE* out) {

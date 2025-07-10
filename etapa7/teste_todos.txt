@@ -113,7 +113,11 @@ int main(){
     x = (5 * 2) + 2 - (01 / 2);
     print "\nValor da variavel x apos operacoes: " x "\n";
 
-    print "\nColoque um valor int pra variavel y: ";
+    print "\nColoque um valor int pra variavel x: ";
+    read x;
+    print "Printando valor lido: " x;
+
+    print "\nColoque um valor int (ate 255) pra variavel y: ";
     read y;
     print "Printando valor lido: " y;
 

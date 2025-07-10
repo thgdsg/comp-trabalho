@@ -123,6 +123,11 @@ valores:
 .LC_SCAN_CHAR:
 	.string " %c"
 	.comm .read_buffer, 256, 32
+.LC_ERR_INT_FORMAT:
+	.string "Erro de execucao: formato de entrada invalido para read (esperado um inteiro).\n"
+.LC_ERR_REAL_FORMAT:
+	.string "Erro de execucao: formato de entrada invalido para read (esperado um real no formato num/den).\n"
+	.comm .read_int_buffer, 4, 4
 	.globl LIT0
 	.align 4
 LIT0:
@@ -251,40 +256,43 @@ LIT35:
 	.string "\nValor da variavel x antes das operacoes: "
 	.globl LIT36
 LIT36:
-	.string "\nValor da variavel x: "
+	.string "\nValor da variavel x apos operacoes: "
 	.globl LIT37
 LIT37:
-	.string "\nColoque um valor int pra variavel y: "
+	.string "\nColoque um valor int pra variavel x: "
 	.globl LIT38
 LIT38:
 	.string "Printando valor lido: "
 	.globl LIT39
 LIT39:
-	.string "\nColoque um valor real pra variavel aux_valor_real: "
+	.string "\nColoque um valor int (ate 255) pra variavel y: "
 	.globl LIT40
 LIT40:
-	.string "\nIniciando Funcao multiplica"
+	.string "\nColoque um valor real pra variavel aux_valor_real: "
 	.globl LIT41
 LIT41:
-	.string "\nvalor da variavel quantidade antes do while loop: "
+	.string "\nIniciando Funcao multiplica"
 	.globl LIT42
-	.align 4
 LIT42:
-	.long 50
+	.string "\nvalor da variavel quantidade antes do while loop: "
 	.globl LIT43
+	.align 4
 LIT43:
-	.string "valor atingido: "
+	.long 50
 	.globl LIT44
 LIT44:
-	.string "valor maior que 50\n"
+	.string "valor atingido: "
 	.globl LIT45
 LIT45:
-	.string "valor da variavel quantidade no loop: "
+	.string "valor maior que 50\n"
 	.globl LIT46
 LIT46:
-	.string "valor da variavel quantidade depois do loop: "
+	.string "valor da variavel quantidade no loop: "
 	.globl LIT47
 LIT47:
+	.string "valor da variavel quantidade depois do loop: "
+	.globl LIT48
+LIT48:
 	.string "\Terminando Funcao multiplica\n"
 	.section .text
 	.globl main
@@ -794,7 +802,7 @@ _label8:
 	# Atribuição INT
 	movl	_temp31(%rip), %eax
 	movl	%eax, x(%rip)
-	# Imprimindo valor: "\nValor da variavel x: "
+	# Imprimindo valor: "\nValor da variavel x apos operacoes: "
 	leaq	.LC_STRING(%rip), %rdi
 	leaq	LIT36(%rip), %rsi
 	movl	$0, %eax
@@ -809,9 +817,27 @@ _label8:
 	leaq	LIT15(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
-	# Imprimindo valor: "\nColoque um valor int pra variavel y: "
+	# Imprimindo valor: "\nColoque um valor int pra variavel x: "
 	leaq	.LC_STRING(%rip), %rdi
 	leaq	LIT37(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Lendo valor para a variavel x
+	call	_read_and_convert
+	movl	%eax, x(%rip)
+	# Imprimindo valor: "Printando valor lido: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT38(%rip), %rsi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: x
+	movl	x(%rip), %esi
+	leaq	.LC_INT(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\nColoque um valor int (ate 255) pra variavel y: "
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT39(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Lendo valor para a variavel y
@@ -829,7 +855,7 @@ _label8:
 	call	printf@PLT
 	# Imprimindo valor: "\nColoque um valor real pra variavel aux_valor_real: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT39(%rip), %rsi
+	leaq	LIT40(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Lendo valor para a variavel aux_valor_real
@@ -838,6 +864,12 @@ _label8:
 	leaq	4+aux_valor_real(%rip), %rdx
 	movl	$0, %eax
 	call	scanf@PLT
+	cmpl	$2, %eax
+	je	.L_read_ok_0x57e34b4e75c0
+.L_read_error_real_0x57e34b4e75c0:
+	leaq	.LC_ERR_REAL_FORMAT(%rip), %rdi
+	call	_runtime_error
+.L_read_ok_0x57e34b4e75c0:
 	# Imprimindo valor: "Printando valor lido: "
 	leaq	.LC_STRING(%rip), %rdi
 	leaq	LIT38(%rip), %rsi
@@ -847,6 +879,11 @@ _label8:
 	movl	aux_valor_real(%rip), %esi
 	movl	4+aux_valor_real(%rip), %edx
 	leaq	.LC_REAL(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	# Imprimindo valor: "\n"
+	leaq	.LC_STRING(%rip), %rdi
+	leaq	LIT15(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Fim da função main
@@ -861,12 +898,12 @@ multiplica:
 	movl	%esi, valor(%rip)
 	# Imprimindo valor: "\nIniciando Funcao multiplica"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT40(%rip), %rsi
+	leaq	LIT41(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: "\nvalor da variavel quantidade antes do while loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT41(%rip), %rsi
+	leaq	LIT42(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: quantidade
@@ -882,7 +919,7 @@ multiplica:
 _label11:
 	# Int GREATER
 	movl	valor(%rip), %eax
-	movl	LIT42(%rip), %edx
+	movl	LIT43(%rip), %edx
 	cmpl	%edx, %eax
 	setg	%al
 	movb	%al, _temp32(%rip)
@@ -898,7 +935,7 @@ _label11:
 	movl	%eax, valor(%rip)
 	# Imprimindo valor: "valor atingido: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT43(%rip), %rsi
+	leaq	LIT44(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: valor
@@ -913,7 +950,7 @@ _label11:
 	call	printf@PLT
 	# Imprimindo valor: "valor maior que 50\n"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT44(%rip), %rsi
+	leaq	LIT45(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Salto incondicional pra _label10
@@ -929,7 +966,7 @@ _label9:
 _label10:
 	# Imprimindo valor: "valor da variavel quantidade no loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT45(%rip), %rsi
+	leaq	LIT46(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: quantidade
@@ -961,7 +998,7 @@ _label10:
 	jne	_label11
 	# Imprimindo valor: "valor da variavel quantidade depois do loop: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT46(%rip), %rsi
+	leaq	LIT47(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: quantidade
@@ -976,7 +1013,7 @@ _label10:
 	call	printf@PLT
 	# Imprimindo valor: "valor atingido: "
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT43(%rip), %rsi
+	leaq	LIT44(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Imprimindo valor: valor
@@ -991,7 +1028,7 @@ _label10:
 	call	printf@PLT
 	# Imprimindo valor: "\Terminando Funcao multiplica\n"
 	leaq	.LC_STRING(%rip), %rdi
-	leaq	LIT47(%rip), %rsi
+	leaq	LIT48(%rip), %rsi
 	movl	$0, %eax
 	call	printf@PLT
 	# Retornando INT
@@ -1011,22 +1048,45 @@ _read_and_convert:
 	leaq	.read_buffer(%rip), %rsi
 	movl	$0, %eax
 	call	scanf@PLT
-	leaq	.read_buffer(%rip), %rdi
-	call	strlen@PLT
-	cmpq	$1, %rax
-	jne	_convert_atoi
+	leaq	.read_buffer(%rip), %rcx
+	movzbl	(%rcx), %eax
+	testb	%al, %al
+	je	.L_read_int_error
+	movzbl	1(%rcx), %eax
+	testb	%al, %al
+	je	.L_is_single_char
+.L_is_multi_char:
+	movzbl	(%rcx), %eax
+	cmpb	$'+', %al
+	je	.L_skip_sign
+	cmpb	$'-', %al
+	je	.L_skip_sign
+	jmp	.L_check_digit_loop
+.L_skip_sign:
+	incq	%rcx
+	movzbl	(%rcx), %eax
+	testb	%al, %al
+	je	.L_read_int_error
+.L_check_digit_loop:
+	movzbl	(%rcx), %eax
+	testb	%al, %al
+	je	.L_convert_with_atoi
+	cmpb	$'0', %al
+	jl	.L_read_int_error
+	cmpb	$'9', %al
+	jg	.L_read_int_error
+	incq	%rcx
+	jmp	.L_check_digit_loop
+.L_is_single_char:
 	movzbl	.read_buffer(%rip), %eax
-	cmpb	$48, %al
-	jl	_is_char
-	cmpb	$57, %al
-	jle	_convert_atoi
-_is_char:
-	movzbl	.read_buffer(%rip), %eax
-	jmp	_read_convert_end
-_convert_atoi:
+	jmp	.L_read_done
+.L_read_int_error:
+	leaq	.LC_ERR_INT_FORMAT(%rip), %rdi
+	call	_runtime_error
+.L_convert_with_atoi:
 	leaq	.read_buffer(%rip), %rdi
 	call	atoi@PLT
-_read_convert_end:
+.L_read_done:
 	leave
 	ret
 
@@ -1064,3 +1124,10 @@ _simplify_fraction:
 	movq	%rax, %rdx
 	popq	%rax
 	ret
+_runtime_error:
+	movq	%rdi, %rsi
+	leaq	.LC_STRING(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	movl	$1, %edi
+	call	exit@PLT
