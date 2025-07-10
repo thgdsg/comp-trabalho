@@ -1,5 +1,7 @@
 %{
-// parser
+// parser (com recuperação de erro)
+// usa o início de uma lista de comandos como ponto de recuperação
+// e o ";" também
 // Thiago dos Santos Gonçalves - 00344587
 // Semestre 2025/1
 #include <stdio.h>
@@ -15,6 +17,8 @@ void yyerror(string msg);
 
 AST* raiz = nullptr;
 int getLineNumber();
+int syntaxErrors = 0;
+int errorType;
 %}
 //%define parse.trace
 %code requires {
@@ -77,6 +81,7 @@ ldef:
 def: vardec { $$ = $1; }
     | fundec { $$ = $1; }
     | vecdec { $$ = $1; }
+    | error ';' { yyerrok; $$ = nullptr; errorType = 0; } // recuperação de erro em declarações
     ;
 
 // todos os literais menos strings
@@ -224,7 +229,7 @@ cmdblock: '{' cmdl '}' {$$ = new AST(AST_BLOCKCMD, { $2 }); }
 
 // lista de comandos (pra blocos de comandos)
 cmdl: cmd cmdl {$$ = new AST(AST_CMD_LIST, { $1, $2 }); }
-    | cmd {$$ = $1; }
+    | cmd {errorType = 1; $$ = $1; } // se for detectado um erro, o errorType vai ser 1
     ;
 
 // comandos da linguagem
@@ -255,6 +260,7 @@ cmd: TK_IDENTIFIER '=' expr ';'
     | KW_RETURN expr ';' { $$ = new AST(AST_CMD_RETURN, { $2 }); }
     | ';' { $$ = nullptr; }
     | cmdblock {$$ = $1;}
+    | error ';' { yyerrok; $$ = nullptr;} // recuperação de erro em comandos
     ;
 
 // lista de argumentos pro comando print
@@ -308,6 +314,12 @@ exprlist: expr ',' exprlist {  $$ = new AST(AST_EXPR_LIST, { $1, $3 }); }
 %%
 
 void yyerror(string msg){
-    fprintf(stderr, "Erro de sintaxe na linha %d: %s\n", getLineNumber(), msg.c_str());
-    exit(3);
+    if (errorType == 0) {
+        fprintf(stderr, "Erro de sintaxe em declaração na linha %d.\n", getLineNumber());
+    } else if (errorType == 1) {
+        fprintf(stderr, "Erro de sintaxe em comando na linha %d.\n", getLineNumber());
+    }
+
+    syntaxErrors++;
+    // exit(3);
 }

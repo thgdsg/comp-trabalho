@@ -17,6 +17,7 @@ int yyparse();
 //extern int yydebug; // pra debug se precisar
 extern int running;
 extern int line_count;
+extern int syntaxErrors;
 
 int main(int argc, char** argv){
     if (argc<3){
@@ -32,6 +33,11 @@ int main(int argc, char** argv){
     fprintf(stderr,"Parsing finished\n");
     fprintf(stderr,"File has %d lines\n", getLineNumber());
     //symbolPrintTable();
+
+    if (syntaxErrors > 0) {
+        fprintf(stderr, "Found %d syntax errors\n", syntaxErrors);
+        exit(3);
+    }
 
     // gera o .txt usando o nome passado em argv[2]
     //astGenerateToFile(raiz, argv[2]);

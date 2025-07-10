@@ -1,10 +1,10 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall
 
-target: etapa6
+target: etapa7
 
-etapa6: lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o
-	$(CXX) $(CXXFLAGS) lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o -o etapa6
+etapa7: lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o optimize.o
+	$(CXX) $(CXXFLAGS) lex.yy.o main.o symbols.o parser.tab.o ast.o semantic.o tac.o asm.o optimize.o -o etapa7
 
 *.o: *.cpp
 	$(CXX) $(CXXFLAGS) $< -c
@@ -19,4 +19,4 @@ parser.tab.cpp: parser.ypp
 	bison parser.ypp -d -v
 
 clean:
-	rm etapa6 lex.yy.cpp parser.tab.cpp parser.tab.hpp parser.output *.o
+	rm etapa7 lex.yy.cpp parser.tab.cpp parser.tab.hpp parser.output *.o
